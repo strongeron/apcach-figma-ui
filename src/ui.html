@@ -1,0 +1,4095 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      /* Base styles */
+      :root {
+        --font-size-base: 11px;
+        --font-size-heading: 13px;
+        
+        /* Add explicit Figma dynamic variables */
+        --text-primary: var(--figma-color-text);
+        --text-secondary: var(--figma-color-text-secondary);
+        --text-tertiary: var(--figma-color-text-tertiary);
+        --text-disabled: var(--figma-color-text-disabled);
+        --border-strong: var(--figma-color-border);
+        --border-subtle: var(--figma-color-border-disabled);
+        --bg-primary: var(--figma-color-bg);
+        --bg-secondary: var(--figma-color-bg-secondary);
+        --bg-tertiary: var(--figma-color-bg-tertiary);
+        --bg-color: #ffffff;
+        --fg-color: #000000;
+        --text-color-primary: var(--figma-color-text, #A0A0A0);
+        --text-color-secondary: var(--figma-color-text-secondary, #808080);
+        --text-color-bg: var(--bg-color, #ffffff);
+        --text-color-fg: var(--fg-color, #000000);
+        
+        /* Add current-hue-color variable with red default as fallback */
+        --current-hue-color: #FF0000;
+      }
+
+      body {
+        font-family: 'Martian Mono', monospace;
+        font-size: var(--font-size-base);
+        margin: 0;
+        height: 100vh;
+        background: transparent;
+      }
+
+      h3 {
+        font-size: var(--font-size-heading);
+        margin: 0 0 8px 0;
+      }
+
+      .color-preview {
+        display: block;
+        width: 100%;
+        height: 120px;
+        border-radius: 8px;
+        box-sizing: border-box;
+        position: relative;
+        border: none; /* Remove default border */
+        transition: border-color 0.2s ease;
+      }
+
+      .color-preview[data-matches-bg="true"] {
+        border: 1px dashed rgba(0, 0, 0, 0.3); /* Simplified border for similar colors */
+      }
+
+      /* Add checkerboard pattern for transparent or near-white colors */
+      .color-preview::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                         linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                         linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                         linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+        background-size: 10px 10px;
+        background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+        border-radius: 7px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      /* Figma-style Hue Slider */
+      .hue-slider-container {
+        position: relative;
+        width: 100%;
+        height: 40px;
+        display: flex;
+        align-items: center;
+      }
+
+      input[type="range"]#hueInput {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 24px;
+        border-radius: 9999px;
+        background: linear-gradient(
+          to right,
+          #FF0000, /* 0 */
+          #FF1500, /* 15 */
+          #FF2A00, /* 30 */
+          #FF4000, /* 40 */
+          #FF5500, /* 45 */
+          #FF6A00, /* 50 */
+          #FF8000, /* 60 */
+          #FFA500, /* 75 */
+          #FFCC00, /* 80 */
+          #FFFF00, /* 90 */
+          #CCFF00, /* 105 */
+          #AAFF00, /* 110 */
+          #80FF00, /* 120 */
+          #55FF00, /* 135 */
+          #2AFF00, /* 140 */
+          #00FF00, /* 150 */
+          #00FF2A, /* 160 */
+          #00FF55, /* 165 */
+          #00FF80, /* 170 */
+          #00FFAA, /* 175 */
+          #00FFFF, /* 180 */
+          #00AAFF, /* 195 */
+          #0080FF, /* 210 */
+          #0055FF, /* 225 */
+          #002AFF, /* 230 */
+          #0000FF, /* 240 */
+          #2A00FF, /* 255 */
+          #5500FF, /* 260 */
+          #8000FF, /* 270 */
+          #AA00FF, /* 285 */
+          #FF00FF, /* 300 */
+          #FF00AA, /* 315 */
+          #FF0080, /* 330 */
+          #FF0055, /* 345 */
+          #FF0000  /* 360 */
+        );
+        outline: none;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+      }
+
+      /* Hue slider thumb with fallbacks */
+      input[type="range"]#hueInput::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: transparent !important; /* Transparent background */
+        border: 6px solid white !important; /* White border */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+      
+      input[type="range"]#hueInput::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: transparent !important; /* Transparent background */
+        border: 2px solid white !important; /* White border */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      .color-preview[data-is-white="true"]::before {
+        opacity: 1;
+      }
+
+      /* Spectrum overlay removed as per requirement */
+      
+      /* Color values component - consolidated styles */
+      .preview-section .color-values {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin: 6px 0;
+        padding: 0;
+        box-sizing: border-box;
+        border-radius: 4px;
+        height: 34px;
+      }
+      
+      /* Control styles shared by foreground and background */
+      .preview-section .color-values > div {
+        display: flex;
+        align-items: center;
+        height: 100%;
+        margin: 0;
+      }
+      
+      /* Color input container */
+      .preview-section .color-values .color-input-container {
+        position: relative;
+        width: 28px;
+        height: 26px;
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* Color input styling */
+      .preview-section .color-values .color-input-container input[type="color"] {
+        width: 28px;
+        height: 26px;
+        padding: 0;
+        border-radius: 4px;
+        cursor: pointer;
+        background: transparent;
+        overflow: hidden;
+      }
+      
+      /* Label styling */
+      .preview-section .color-values .color-input-label {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--border-strong); /* Use dynamic color variable */
+        font-family: 'Martian Mono', monospace;
+        font-weight: 600;
+        font-size: 9px;
+        pointer-events: none;
+        user-select: none;
+      }
+      
+      /* Container for editable value */
+      .preview-section .color-values > div > div {
+        display: flex;
+        align-items: center;
+        padding-left: 4px;
+      }
+      
+      /* Editable color value */
+      .preview-section .color-values .editable-color-value {
+        font-family: 'Martian Mono', monospace;
+        font-size: 11px;
+        padding: 0 0 0 4px;
+        margin: 0;
+        color: inherit;
+        background-color: transparent;
+        user-select: all;
+        cursor: text;
+        display: inline-block;
+        border: none;
+        outline: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      /* Remove hover effects */
+      .preview-section .color-values .editable-color-value:hover {
+        background-color: transparent;
+      }
+
+      .gamut-info {
+        font-size: var(--font-size-base);
+        margin-left: 6px;
+        opacity: 0.75;
+        color: var(--value-secondary);
+      }
+      .gamut-info.p3-only {
+        color: var(--success-color);
+      }
+      .gamut-info.fallback {
+        color: var(--error-color);
+      }
+      .out-of-gamut {
+        color: var(--error-color, #ff4444);
+        opacity: 0.7;
+      }
+      .controls {
+        display: grid;
+        padding: 16px;
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--figma-color-bg) 95%, transparent);
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .control {
+        display: grid;
+        grid-template-columns: 70px 1fr 70px; /* Change from 170px to 1fr to allow slider to take remaining space */
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        height: 40px;
+      }
+      /* Update font styles for controls */
+      .control label {
+        color: var(--figma-color-text-secondary);
+        font-size: var(--font-size-base);
+      }
+
+      /* Update slider container styles */
+      .slider-container {
+        position: relative;
+        width: 100%;
+        height: 32px;
+        display: flex;
+        align-items: center;
+      }
+      
+      /* Position the max label below the slider */
+      .control-info {
+        position: absolute;
+        top: 32px; /* Match the height of the slider container */
+        left: 0;
+        color: var(--figma-color-text-tertiary);
+        opacity: 0.75;
+        font-size: var(--font-size-base);
+        margin-top: 4px; /* Reduced from 8px for tighter layout */
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      
+      /* Adjust the background control to match other controls */
+      .background-control {
+        display: grid;
+        grid-template-columns: 70px auto;
+        align-items: center;
+        margin-bottom: 0;
+        color: var(--figma-color-text-secondary);
+        height: 40px;
+      }
+      
+      .background-control > div {
+        display: flex;
+        align-items: center;
+      }
+
+      .control:has(.control-info) {
+        margin-bottom: 20px;
+      }
+
+      .control-info:hover {
+        color: var(--figma-color-text-secondary);
+        opacity: 0.9;
+      }
+      .preview-section {
+        padding: 32px;
+        background-color: var(--figma-color-text);
+        min-height: 200px;
+        position: relative;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .preview-section.empty {
+        background-color: transparent;
+      }
+      .preview-section.empty .color-preview {
+        border: 1px dashed var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: transparent !important;
+      }
+      .preview-section.empty .color-preview::before {
+        content: 'No color selected';
+        color: var(--value-tertiary);
+        font-style: italic;
+      }
+      .preview-section.empty .color-values {
+        opacity: 0.5;
+      }
+      .preview-section.empty .color-value span:not(.value-label) {
+        color: var(--value-secondary);
+        font-style: italic;
+      }
+      .preview-section.empty .color-value span:not(.value-label)::before {
+        content: '—';
+      }
+      .background-control {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        color: var(--text-secondary);
+      }
+      .background-control input[type="color"] {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+        border-radius: 4px;
+        cursor: pointer;
+        background: transparent;
+      }
+      .background-control input[type="color"]:focus {
+        /* These styles are now handled by the global input[type="color"]:focus */
+      }
+      .background-control input[type="color"]:hover {
+        /* These styles are now handled by the global input[type="color"]:hover */
+      }
+      .background-control span {
+        font-family: 'Martian Mono', monospace;
+        color: var(--figma-color-text-tertiary);
+      }
+      /* Standard range input styling */
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 24px;
+        background: var(--figma-color-bg-secondary);
+        border-radius: 9999px;
+        outline: none;
+        cursor: pointer;
+        flex: 1; /* Allow flex growing */
+      }
+      
+      /* Standard thumb styling */
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--text-color);
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+      
+      /* Hue Slider Gradient */
+      input[type="range"]#hueInput {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 24px;
+        border-radius: 9999px;
+        background: linear-gradient(
+          to right,
+          #FF0000, /* 0 */
+          #FF1500, /* 15 */
+          #FF2A00, /* 30 */
+          #FF4000, /* 40 */
+          #FF5500, /* 45 */
+          #FF6A00, /* 50 */
+          #FF8000, /* 60 */
+          #FFA500, /* 75 */
+          #FFCC00, /* 80 */
+          #FFFF00, /* 90 */
+          #CCFF00, /* 105 */
+          #AAFF00, /* 110 */
+          #80FF00, /* 120 */
+          #55FF00, /* 135 */
+          #2AFF00, /* 140 */
+          #00FF00, /* 150 */
+          #00FF2A, /* 160 */
+          #00FF55, /* 165 */
+          #00FF80, /* 170 */
+          #00FFAA, /* 175 */
+          #00FFFF, /* 180 */
+          #00AAFF, /* 195 */
+          #0080FF, /* 210 */
+          #0055FF, /* 225 */
+          #002AFF, /* 230 */
+          #0000FF, /* 240 */
+          #2A00FF, /* 255 */
+          #5500FF, /* 260 */
+          #8000FF, /* 270 */
+          #AA00FF, /* 285 */
+          #FF00FF, /* 300 */
+          #FF00AA, /* 315 */
+          #FF0080, /* 330 */
+          #FF0055, /* 345 */
+          #FF0000  /* 360 */
+        );
+        outline: none;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+      }
+      
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: transparent !important; /* Transparent background */
+        border: 2px solid white !important; /* White border */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+      
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: transparent !important; /* Transparent background */
+        border: 2px solid white !important; /* White border */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+      
+      input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+      }
+      
+      input[type="range"]::-webkit-slider-thumb:active {
+        transform: scale(1.05);
+      }
+      
+
+      input[type="number"] {
+        font-family: 'Martian Mono', monospace;
+        font-size: var(--font-size-base);
+        width: 70px;
+        height: 24px;
+        padding: 0 8px;
+        text-align: center;
+        color: var(--figma-color-text-secondary);
+        background: var(--figma-color-bg-secondary);
+        border: none;
+        border-radius: 9999px;
+      }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      input[type="number"]:hover {
+        background-color: color-mix(in srgb, var(--figma-color-bg-secondary) 90%, var(--text-color) 10%);
+      }
+      input[type="number"]:focus {
+        outline: none;
+        background-color: color-mix(in srgb, var(--figma-color-bg-secondary) 80%, var(--text-color) 20%);
+        box-shadow: 0 0 0 2px var(--current-hue-color, #FF0000);
+      }
+      /* Direct usage - full opacity */
+      .color-value span:not(.value-label) {
+        color: color-mix(in srgb, var(--value-tertiary) 100%, transparent);
+      }
+      .color-value .out-of-gamut {
+        color: #ff4444 !important; /* Force error state color */
+      }
+      #bgColorValue, #fgColorValue {
+        color: var(--value-text, #FFFFFF); /* Use the dynamic color variable with fallback */
+        opacity: 1;
+      }
+      .hex-fallback {
+        opacity: 0.7;
+        font-size: var(--font-size-base);
+      }
+      .actions {
+        margin-top: 20px;
+      }
+      
+      .button {
+        font-family: 'Martian Mono', monospace;
+        font-size: var(--font-size-base);
+        background-color: #18A0FB;
+        color: var(--value-text, white); /* Use dynamic color variable with fallback */
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .button:hover {
+        background-color: #0D8DE3;
+      }
+
+      .apca-row {
+        display: block;
+        margin-top: 12px;
+        padding-top: 8px;
+      }
+
+      .apca-description {
+        display: block;
+        margin-top: 4px;
+        margin-left: 0;
+        font-size: var(--font-size-base);
+        font-style: italic;
+        color: var(--figma-color-text-secondary, #666666);
+      }
+
+      /* Dark theme adjustments */
+      @media (prefers-color-scheme: dark) {
+        .gamut-info.p3-only {
+          color: var(--success-color, #4CAF50); /* Brighter green for dark theme */
+        }
+        .gamut-info.fallback {
+          color: var(--error-color, #FF5252); /* Brighter red for dark theme */
+        }
+      }
+
+      .value-label {
+        min-width: 60px;
+        flex-shrink: 0;
+        color: var(--figma-color-text-tertiary);
+        font-size: var(--font-size-base);
+      }
+
+      .value-content {
+        flex-grow: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .no-selection-message {
+        font-family: 'Martian Mono', monospace;
+        font-size: var(--font-size-base);
+        border-radius: 4%;
+        margin-top: 12px;
+        margin-bottom: 12px;
+        display: none;
+      }
+
+
+      /* Add a semi-transparent overlay for content */
+      .content-wrapper {
+        background: var(--figma-color-bg); /* Use Figma's background */
+        min-height: 100vh;
+      }
+
+      .preview-button-container {
+        margin-top: 16px;
+        width: 100%;
+      }
+      
+      .preview-button {
+        width: 100%;
+        padding: 8px 16px;
+        color: var(--value-text, white); /* Use dynamic color variable with fallback */
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      
+      .preview-button:hover {
+        /* This will be overridden by dynamic styles */
+        filter: brightness(0.9);
+      }
+      
+      .preview-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      .status-message {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: var(--figma-color-text);
+        color: var(--figma-color-bg);
+        padding: 8px 16px;
+        border-radius: 4px;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        font-size: 12px;
+        max-width: 80%;
+        text-align: center;
+      }
+
+      .editable-color-value {
+        padding: 2px 4px;
+        border: 1px solid transparent;
+        border-radius: 2px;
+        cursor: text;
+        min-width: 70px;
+        display: inline-block;
+        transition: all 0.2s ease;
+        position: relative;
+      }
+
+      .editable-color-value:hover {
+        border-color: var(--figma-color-border-disabled);
+      }
+
+      .editable-color-value:focus {
+        outline: none;
+        border-color: var(--figma-color-border);
+        color: var(--figma-color-text-secondary);
+        background-color: color-mix(in srgb, var(--figma-color-bg) 95%, transparent);
+      }
+
+      /* Add a small edit icon indicator */
+      .editable-color-value::after {
+        content: "✎";
+        font-size: 10px;
+        opacity: 0;
+        margin-left: 4px;
+        transition: opacity 0.2s ease;
+        vertical-align: super;
+      }
+
+      .editable-color-value:hover::after {
+        opacity: 0.7;
+      }
+
+      /* Text input width adjustment */
+      .text-input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      /* Make container elements fit the width */
+      .container, .preview-container, .controls-container {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Add custom gradient styling for chroma slider */
+      input[type="range"]#chromaInput {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 24px;
+        border-radius: 9999px;
+        background: var(--figma-color-bg-secondary);
+        outline: none;
+        cursor: pointer;
+      }
+
+      /* Chroma slider thumb */
+      input[type="range"]#chromaInput::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      input[type="range"]#chromaInput::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--value-text, #FFFFFF);
+        border: 2px solid var(--value-text, white);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      /* Add custom styling for APCA slider */
+      input[type="range"]#contrastInput {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 24px;
+        border-radius: 9999px;
+        background: var(--figma-color-bg-secondary);
+        outline: none;
+        cursor: pointer;
+      }
+
+      /* APCA slider thumb */
+      input[type="range"]#contrastInput::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      input[type="range"]#contrastInput::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--value-text, #FFFFFF);
+        border: 2px solid var(--value-text, white);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+      
+      /* Common hover and active states for all thumbs */
+      input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+      }
+      
+      input[type="range"]::-webkit-slider-thumb:active {
+        transform: scale(1.05);
+      }
+
+      /* Add styles for the APCA icon */
+      .icon-apca {
+        display: inline-flex;
+        vertical-align: middle;
+        margin-right: 4px;
+        position: relative;
+        top: -1px; /* Fine-tune vertical alignment */
+      }
+
+      .icon-apca svg {
+        width: 16px;
+        height: 16px;
+      }
+      
+      .icon-apca svg path {
+        stroke: var(--figma-color-text-secondary);
+        stroke-opacity: 0.9;
+      }
+      
+      /* Ensure label alignment */
+      .control label {
+        align-items: center;
+      }
+
+      /* Style for APCA row when in controls section */
+      .controls .color-value.apca-row {
+        display: flex;
+        flex-direction: column;
+        background-color: var(--figma-color-bg-secondary, #1E1E1E);
+        border-radius: 8px;
+        padding: 15px;
+        gap: 8px;
+        text-align: left;
+      }
+
+      .controls .color-value.apca-row > div {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 5px;
+        width: 100%;
+      }
+
+      .controls .color-value.apca-row > div span {
+        color: var(--figma-color-text, #ffffff);
+        font-family: 'Martian Mono', monospace;
+        font-size: 13px;
+      }
+
+      .controls .color-value.apca-row > div span:first-child {
+        opacity: 0.9;
+      }
+
+      .controls .color-value.apca-row > div span#apcaValue {
+        font-weight: 500;
+      }
+
+      .controls .apca-description {
+        margin: 0;
+        font-size: 11px;
+        font-style: normal;
+        color: var(--figma-color-text-secondary, #666666);
+        line-height: 1.4;
+        opacity: 0.85;
+        text-align: left;
+      }
+
+      /* Color controls in the preview section - MAIN STYLE */
+      .color-values {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        width: fit-content;
+        margin: 8px auto; /* Center horizontally */
+      }
+      
+      .color-values .background-control,
+      .color-values .foreground-control {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        width: auto;
+      }
+
+      /* Adjust the div containing the color value - MAIN STYLE */
+      .color-values .background-control > div,
+      .color-values .foreground-control > div {
+        display: flex;
+        align-items: center;
+        padding-left: 4px; /* Small padding for slight visual separation */
+        width: auto;
+      }
+      
+      /* Color input container styling */
+      .color-input-container {
+        position: relative;
+        width: 40px;
+        height: 40px;
+      }
+      
+      /* Color input styling */
+      .color-input-container input[type="color"] {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        cursor: pointer;
+        background: transparent;
+        overflow: hidden;
+      }
+      
+      /* Hover and focus states for color inputs */
+      .color-input-container input[type="color"]:focus {
+        /* These styles are now handled by the global input[type="color"]:focus */
+      }
+
+      .color-input-container input[type="color"]:hover {
+        /* These styles are now handled by the global input[type="color"]:hover */
+      }
+      
+      /* Hide the color preview border and make it fill the input */
+      .color-input-container input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+
+      .color-input-container input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 7px; /* Slightly smaller than the input to avoid clipping */
+      }
+      
+      /* Color input label styling */
+      .color-input-label {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--value-text, #FFFFFF); /* Use the dynamic color variable with fallback */
+        font-family: 'Martian Mono', monospace;
+        font-weight: 600;
+        font-size: 10px;
+
+        pointer-events: none;
+        user-select: none;
+        opacity: 1;
+      }
+      
+      /* Editable color value styling */
+      .color-values .background-control .editable-color-value,
+      .color-values .foreground-control .editable-color-value {
+        font-family: 'Martian Mono', monospace;
+        font-size: 11px;
+        padding: 2px 0;
+        margin: 0;
+        color: inherit;
+        background-color: transparent;
+        user-select: all;
+        cursor: text;
+        display: inline-block;
+        border: none;
+        outline: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      /* Remove hover background effects */
+      .color-values .background-control .editable-color-value:hover,
+      .color-values .foreground-control .editable-color-value:hover {
+        background-color: transparent;
+      }
+
+      /* Editable color value styling - using dynamic color variables */
+      .editable-color-value {
+        font-size: 12px;
+        padding: 2px 0;
+        margin: 0;
+        color: var(--value-text); /* Use dynamic color variable */
+        background-color: transparent;
+        user-select: all;
+        cursor: text;
+        min-width: 70px;
+        display: inline-block;
+        border: none;
+        outline: none;
+      }
+      
+      /* Remove hover effects */
+      .editable-color-value:hover,
+      .editable-color-value:focus {
+        background-color: transparent;
+      }
+
+      /* Color input styling */
+      .preview-section .color-values .color-input-container input[type="color"] {
+        width: 28px;
+        height: 26px;
+        padding: 0;
+        border-radius: 4px;
+        cursor: pointer;
+        background: transparent;
+        overflow: hidden;
+      }
+
+      /* Hide the color preview border in the preview section */
+      .preview-section .color-values .color-input-container input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+
+      .preview-section .color-values .color-input-container input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 3px; /* Slightly smaller than the input */
+      }
+
+      /* Label styling */
+      .preview-section .color-values .color-input-label {
+        position: absolute;
+        top: 51%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--value-text); /* Use dynamic color variable */
+        font-family: 'Martian Mono', monospace;
+        font-weight: 600;
+        font-size: 9px;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      /* Unified style for all color inputs in the UI */
+      input[type="color"] {
+        border: 1px solid transparent;
+        transition: border-color 0.2s ease;
+      }
+
+      input[type="color"]:hover {
+        border-color: var(--border-strong);
+      }
+
+      input[type="color"]:focus {
+        border-color: var(--text-secondary);
+        outline: none;
+      }
+
+      /* Keep the specific styling for containers while using the unified border behavior */
+      .color-input-container input[type="color"] {
+        width: 28px;
+        height: 26px;
+        padding: 0;
+        border-radius: 4px;
+        cursor: pointer;
+        background: transparent;
+        overflow: hidden;
+        border: 1px solid transparent;
+      }
+
+      /* Fix Firefox input appearance */
+      input[type="color"]::-moz-color-swatch {
+        border: none;
+        border-radius: 3px;
+      }
+
+      /* Add this specific style for the background color input to ensure it uses our border hover effect */
+      #bgColorInput, #fgColorInput {
+        border: 1px solid;
+        border-color: var(--border-strong, rgba(0, 0, 0, 0.3));
+        transition: border-color 0.2s ease;
+      }
+
+      #bgColorInput:hover, #fgColorInput:hover {
+        border-color: var(--border-strong, rgba(0, 0, 0, 0.3));
+      }
+
+      #bgColorInput:focus, #fgColorInput:focus {
+        border-color: var(--text-secondary, rgba(0, 0, 0, 0.5));
+        outline: none;
+      }
+
+      /* Add consistent webkit and moz styling for color pickers across all areas */
+      input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+
+      input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 3px;
+      }
+
+      /* APCA value display styling */
+      .color-value.apca-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 12px;
+        padding-top: 8px;
+      }
+
+      .color-value.apca-row > div {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .color-value.apca-row > div span {
+        font-family: 'Martian Mono', monospace;
+        font-size: 13px;
+      }
+
+      .color-value.apca-row > div span:first-child {
+        color: var(--figma-color-text, #333333);
+        opacity: 0.9;
+      }
+
+      .color-value.apca-row > div span#apcaValue {
+        color: var(--figma-color-text, #333333);
+        font-weight: 600;
+      }
+
+      .color-value.apca-row .apca-description {
+        display: block;
+        margin-top: 4px;
+        margin-left: 0;
+        font-size: 11px;
+        color: var(--figma-color-text-secondary, #666666);
+        line-height: 1.4;
+      }
+
+      /* ... existing styles ... */
+      
+      .parameter-action-notification {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: var(--figma-color-bg-brand, #0D99FF);
+        color: var(--figma-color-text-onbrand, white);
+        padding: 8px 16px;
+        z-index: 1000;
+        font-size: 13px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      
+      .notification-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .notification-icon {
+        margin-right: 8px;
+        font-size: 16px;
+      }
+      
+      .notification-message {
+        font-weight: 500;
+      }
+    </style>
+    <script>
+      // Ensure APCACHromatic is available globally
+      window.onload = function() {
+        console.log('Window loaded, checking APCACHromatic availability');
+        ensureAPCACHromaticAvailable();
+      };
+      
+      // Function to ensure APCACHromatic is available
+      function ensureAPCACHromaticAvailable() {
+        console.log('Ensuring APCACHromatic is available');
+        
+        if (!window.APCACHromatic) {
+          console.warn('APCACHromatic not found, attempting to initialize');
+          
+          // Try to find APCACHromatic in the global scope
+          if (typeof APCACHromatic !== 'undefined') {
+            window.APCACHromatic = APCACHromatic;
+            console.log('Found APCACHromatic in global scope');
+          }
+          // Try to find it under a different name
+          else if (typeof apcach !== 'undefined') {
+            window.APCACHromatic = apcach;
+            console.log('Found apcach, using as APCACHromatic');
+          }
+          // Try to load it from a script if available
+          else {
+            console.warn('APCACHromatic not found in global scope, attempting to load from script');
+            
+            // Create a simple implementation for testing
+            window.APCACHromatic = {
+              crToBg: function(bgRGB, contrast, chroma, hue) {
+                console.log('Using fallback crToBg implementation with:', bgRGB, contrast, chroma, hue);
+                
+                // Simple implementation that adjusts lightness based on contrast
+                // This is just a fallback and won't match the real algorithm
+                const l = Math.min(0.95, Math.max(0.05, contrast / 100));
+                
+                // Convert LCH to RGB (very simplified)
+                const r = Math.round(255 * l);
+                const g = Math.round(255 * l);
+                const b = Math.round(255 * l);
+                
+                return { r, g, b };
+              },
+              getContrastAPCA: function(textRGB, bgRGB) {
+                console.log('Using fallback getContrastAPCA implementation with:', textRGB, bgRGB);
+                
+                // Simple approximation of APCA contrast (not accurate)
+                const luminanceText = 0.2126 * textRGB[0] + 0.7152 * textRGB[1] + 0.0722 * textRGB[2];
+                const luminanceBg = 0.2126 * bgRGB[0] + 0.7152 * bgRGB[1] + 0.0722 * bgRGB[2];
+                
+                const contrast = Math.abs(luminanceText - luminanceBg) / 255 * 100;
+                return contrast > 50 ? contrast : -contrast;
+              },
+              rgbToP3: function(rgb) {
+                return `color(display-p3 ${rgb.r/255} ${rgb.g/255} ${rgb.b/255})`;
+              }
+            };
+            
+            console.log('Created fallback APCACHromatic implementation');
+          }
+        } else {
+          console.log('APCACHromatic is already available');
+        }
+        
+        // Check if it's available now
+        if (window.APCACHromatic) {
+          console.log('APCACHromatic is now available with methods:', 
+            Object.keys(window.APCACHromatic).filter(key => typeof window.APCACHromatic[key] === 'function'));
+          
+          // Initialize the chroma gradient once APCACHromatic is available
+          setTimeout(function() {
+            updateChromaGradient();
+          }, 100); // Short delay to ensure DOM is ready
+        } else {
+          console.error('Failed to make APCACHromatic available');
+        }
+      }
+      
+      // Simple color parsing function
+      function parseColor(hexColor) {
+        console.log('Parsing color:', hexColor);
+        
+        if (!hexColor) {
+          console.warn('Invalid hex color (null or undefined)');
+          return { r: 0, g: 0, b: 0 };
+        }
+        
+        // Remove the hash if it exists
+        const hex = hexColor.replace(/^#/, '');
+        
+        // Handle shorthand hex (e.g., #FFF)
+        let r, g, b;
+        if (hex.length === 3) {
+          r = parseInt(hex[0] + hex[0], 16);
+          g = parseInt(hex[1] + hex[1], 16);
+          b = parseInt(hex[2] + hex[2], 16);
+        } else {
+          r = parseInt(hex.substring(0, 2), 16);
+          g = parseInt(hex.substring(2, 4), 16);
+          b = parseInt(hex.substring(4, 6), 16);
+        }
+        
+        // Check if the parsing was successful
+        if (isNaN(r) || isNaN(g) || isNaN(b)) {
+          console.warn('Failed to parse hex color:', hexColor);
+          return { r: 0, g: 0, b: 0 };
+        }
+        
+        console.log('Parsed color result:', { r, g, b });
+        return { r, g, b };
+      }
+      
+      // Simple RGB to hex conversion
+      function rgbToHex(rgb) {
+        console.log('Converting RGB to hex:', rgb);
+        
+        if (!rgb || typeof rgb !== 'object') {
+          console.warn('Invalid RGB object:', rgb);
+          return '#000000';
+        }
+        
+        // Extract RGB values, ensuring they are numbers
+        let r = parseInt(rgb.r);
+        let g = parseInt(rgb.g);
+        let b = parseInt(rgb.b);
+        
+        // Check if the values are valid numbers
+        if (isNaN(r) || isNaN(g) || isNaN(b)) {
+          console.warn('Invalid RGB values:', rgb);
+          return '#000000';
+        }
+        
+        // Ensure values are in the valid range
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        b = Math.max(0, Math.min(255, b));
+        
+        // Convert to hex
+        const hex = '#' + 
+          r.toString(16).padStart(2, '0') + 
+          g.toString(16).padStart(2, '0') + 
+          b.toString(16).padStart(2, '0');
+        
+        console.log('Converted to hex:', hex);
+        return hex;
+      }
+
+      // Function to calculate luminance for contrast calculations
+      function calculateLuminance(r, g, b) {
+        // Convert RGB to linear sRGB
+        const rsrgb = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+        const gsrgb = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+        const bsrgb = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+        
+        // Calculate luminance
+        return 0.2126 * rsrgb + 0.7152 * gsrgb + 0.0722 * bsrgb;
+      }
+
+      // Function to calculate contrast ratio
+      function calculateContrastRatio(color1, color2) {
+        const rgb1 = hexToRgb(color1);
+        const rgb2 = hexToRgb(color2);
+        
+        if (!rgb1 || !rgb2) return 1;
+        
+        const lum1 = calculateLuminance(rgb1.r/255, rgb1.g/255, rgb1.b/255);
+        const lum2 = calculateLuminance(rgb2.r/255, rgb2.g/255, rgb2.b/255);
+        
+        const lighter = Math.max(lum1, lum2);
+        const darker = Math.min(lum1, lum2);
+        
+        return (lighter + 0.05) / (darker + 0.05);
+      }
+
+      // Function to ensure sufficient contrast
+      function ensureContrast(color, backgroundColor, minRatio = 4.5) {
+        let result = color;
+        let currentRatio = calculateContrastRatio(color, backgroundColor);
+        let adjustmentStep = 0.1;
+        let maxAdjustments = 9;
+        let adjustments = 0;
+        
+        // Get background luminance
+        const bgRgb = hexToRgb(backgroundColor);
+        if (!bgRgb) return color;
+        const bgLum = calculateLuminance(bgRgb.r/255, bgRgb.g/255, bgRgb.b/255);
+        
+        console.log(`Initial contrast ratio: ${currentRatio.toFixed(2)} (min: ${minRatio})`);
+        
+        // If we already have enough contrast, return the color
+        if (currentRatio >= minRatio) return color;
+        
+        // Determine if we need to lighten or darken based on background
+        const needsLightening = bgLum < 0.5;
+        
+        // Adjust until we reach desired contrast or max adjustments
+        while (currentRatio < minRatio && adjustments < maxAdjustments) {
+          if (needsLightening) {
+            result = lightenColor(result, adjustmentStep);
+          } else {
+            result = darkenColor(result, adjustmentStep);
+          }
+          
+          currentRatio = calculateContrastRatio(result, backgroundColor);
+          adjustments++;
+        }
+        
+        console.log(`Adjusted contrast ratio: ${currentRatio.toFixed(2)} after ${adjustments} adjustments`);
+        return result;
+      }
+    </script>
+  </head>
+  <body>
+    <div class="content-wrapper">
+
+      <div class="preview-section empty">
+        <div class="color-preview" id="colorPreview"></div>
+        <div class="color-values" style="--preview-color: #53936d; --value-text: #32513e; --value-secondary: #557661; --value-tertiary: #749680; --border-strong: color-mix(in srgb, #70bb8e 26%, transparent); --border-subtle: color-mix(in srgb, #8cd7a9 10%, transparent);">
+                   <div class="foreground-control">
+            <div class="color-input-container">
+              <input type="color" id="fgColorInput" value="#000000">
+              <span class="color-input-label">FG</span>
+            </div>
+            <div>
+              <span id="fgColorValue" title="Click to edit foreground color" class="editable-color-value" contenteditable="true" spellcheck="false">#000000</span>
+            </div>
+          </div>
+          <div class="background-control">
+            <div class="color-input-container">
+              <input type="color" id="bgColorInput" value="#D9D9D9">
+              <span class="color-input-label">BG</span>
+            </div>
+            <div>
+              <span id="bgColorValue" title="Click to edit background color" class="editable-color-value" contenteditable="true" spellcheck="false">#D9D9D9</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="control">
+          <label>
+            APCA
+            <span class="icon-apca">
+              <svg width="16" height="16" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9.3335 8.5C9.3335 8.85362 9.47397 9.19276 9.72402 9.44281C9.97407 9.69286 10.3132 9.83333 10.6668 9.83333C11.0205 9.83333 11.3596 9.69286 11.6096 9.44281C11.8597 9.19276 12.0002 8.85362 12.0002 8.5C12.0002 8.14638 11.8597 7.80724 11.6096 7.55719C11.3596 7.30714 11.0205 7.16667 10.6668 7.16667C10.3132 7.16667 9.97407 7.30714 9.72402 7.55719C9.47397 7.80724 9.3335 8.14638 9.3335 8.5Z" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1.3335 8.5C1.3335 7.43913 1.75492 6.42172 2.50507 5.67157C3.25521 4.92143 4.27263 4.5 5.3335 4.5H10.6668C11.7277 4.5 12.7451 4.92143 13.4953 5.67157C14.2454 6.42172 14.6668 7.43913 14.6668 8.5C14.6668 9.56087 14.2454 10.5783 13.4953 11.3284C12.7451 12.0786 11.7277 12.5 10.6668 12.5H5.3335C4.27263 12.5 3.25521 12.0786 2.50507 11.3284C1.75492 10.5783 1.3335 9.56087 1.3335 8.5Z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </label>
+          <div class="slider-container">
+            <input type="range" 
+                   id="contrastInput" 
+                   min="8" 
+                   max="108" 
+                   value="60" 
+                   step="1">
+          </div>
+          <input type="number" 
+                 id="contrastNumber" 
+                 value="60"
+                 min="8"
+                 max="108"
+                 step="1">
+        </div>
+        <div class="control">
+          <label for="chromaInput">Chroma</label>
+          <div class="slider-container">
+            <input type="range" id="chromaInput" min="0" max="0.37" step="0.001" value="0.2">
+            <div class="control-info" id="maxChromaInfo">Max: <span id="maxChromaValue">0.37</span></div>
+          </div>
+          <input type="number" id="chromaNumber" min="0" max="0.37" step="0.001" value="0.2">
+        </div>
+        <div class="control">
+          <label>Hue</label>
+          <div class="hue-slider-container">
+            <input type="range" id="hueInput" min="0" max="360" value="145" step="1">
+          </div>
+          <input type="number" id="hueNumber" value="145">
+        </div>
+        <div class="color-value apca-row">
+          <div>
+            <span>APCA:</span>
+            <span id="apcaValue">60</span>
+          </div>
+          <div id="apcaDescription" class="apca-description">Good Contrast (60–74) - Suitable for large text and headlines</div>
+        </div>
+      </div>
+
+
+
+
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <!-- Add a notification area for plugin parameter actions -->
+    <div id="parameter-action-notification" class="parameter-action-notification" style="display: none;">
+      <div class="notification-content">
+        <div class="notification-icon">🎨</div>
+        <div class="notification-message">Maximizing chroma for selected elements...</div>
+      </div>
+    </div>
+
+    <script>
+      // Define default values in a single place
+      const defaults = {
+        backgroundColor: '#ffffff', // White as default background
+        contrast: 60,
+        chroma: 0.2,  // Updated to match HTML value
+        hue: 145,
+        oklch: 'oklch(0.5 0.2 240)',
+        hex: '#808080',
+        p3: 'color(display-p3 0.5 0.5 0.5)',
+        figmaP3: '#808080',
+        apca: '60',
+        buttonChroma: 0.25  // Chroma value for the button (more vibrant)
+      };
+
+      // Helper function to clean Figma P3 values and ensure proper format (#d9d9d9)
+      function cleanFigmaP3Value(value) {
+        if (!value) return '';
+        
+        console.log('Cleaning Figma P3 value:', value);
+        
+        // Handle case where value might be an HTML element or contain HTML
+        if (value.includes('<') && value.includes('>')) {
+          // Extract text content from HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = value;
+          value = tempDiv.textContent || '';
+          console.log('Extracted text from HTML:', value);
+        }
+        
+        // Remove all # characters from the beginning
+        let cleaned = value.replace(/^#+/, '');
+        
+        // Ensure it's a valid hex color (6 characters)
+        if (/^[0-9a-fA-F]{6}$/i.test(cleaned)) {
+          return '#' + cleaned.toLowerCase();
+        }
+        
+        // If it's already a valid hex with # prefix, just return it
+        if (/^#[0-9a-fA-F]{6}$/i.test(value)) {
+          return value.toLowerCase();
+        }
+        
+        // For any other format, return as is
+        return value;
+      }
+
+      // Helper function to clean P3 values and ensure proper format
+      function cleanP3Value(value) {
+        if (!value) return 'color(display-p3 0.5 0.5 0.5)';
+        
+        // If it's already a valid P3 string, return it
+        if (value.includes('color(display-p3')) {
+          return value;
+        }
+        
+        // If it's a hex value, convert it to a basic P3 representation
+        if (value.startsWith('#')) {
+          const r = parseInt(value.substring(1, 3), 16) / 255;
+          const g = parseInt(value.substring(3, 5), 16) / 255;
+          const b = parseInt(value.substring(5, 7), 16) / 255;
+          return `color(display-p3 ${r.toFixed(6)} ${g.toFixed(6)} ${b.toFixed(6)})`;
+        }
+        
+        // If it's a hex without #, convert it
+        if (/^[0-9a-fA-F]{6}$/.test(value)) {
+          const r = parseInt(value.substring(0, 2), 16) / 255;
+          const g = parseInt(value.substring(2, 4), 16) / 255;
+          const b = parseInt(value.substring(4, 6), 16) / 255;
+          return `color(display-p3 ${r.toFixed(6)} ${g.toFixed(6)} ${b.toFixed(6)})`;
+        }
+        
+        // Default fallback
+        return 'color(display-p3 0.5 0.5 0.5)';
+      }
+
+      // Parse OKLCH string safely and return a valid object or null if invalid
+      function safeParseOklch(oklchStr) {
+        try {
+          if (!oklchStr) return { l: 0.5, c: 0.2, h: 240 };
+          
+          // Extract values using regex
+          const match = oklchStr.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+          if (match) {
+            return {
+              l: parseFloat(match[1]) || 0.5,
+              c: parseFloat(match[2]) || 0.2,
+              h: parseFloat(match[3]) || 240
+            };
+          }
+          
+          // If no match, return default values
+          return { l: 0.5, c: 0.2, h: 240 };
+        } catch (error) {
+          console.error('Error parsing OKLCH:', error);
+          // Return default values on error
+          return { l: 0.5, c: 0.2, h: 240 };
+        }
+      }
+
+      // Helper function to show status messages
+      function showStatusMessage(message) {
+        const statusElement = document.getElementById('statusMessage');
+        if (statusElement) {
+          statusElement.textContent = message;
+          statusElement.style.display = 'block';
+          statusElement.style.backgroundColor = 'var(--figma-color-bg, #333)';
+          
+          // Hide after 3 seconds
+          setTimeout(() => {
+            statusElement.style.display = 'none';
+          }, 3000);
+        }
+      }
+      
+      // Get a safe value from an element with fallback
+      function getSafeValue(elementId, fallback = '') {
+        const element = document.getElementById(elementId);
+        if (!element) return fallback;
+        
+        // Get the text content, handling nested spans
+        let content = '';
+        if (element.childNodes.length > 0) {
+          // Collect text from all child nodes
+          for (const node of element.childNodes) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              content += node.textContent.trim();
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              content += node.textContent.trim();
+            }
+          }
+        } else {
+          content = element.textContent.trim();
+        }
+        
+        return content || fallback;
+      }
+      
+      // Create a valid OKLCH string if the current one is invalid
+      function ensureValidOklch(oklchStr) {
+        // If it's already a valid OKLCH string, return it
+        if (oklchStr && oklchStr.includes('oklch(') && 
+            /oklch\(\s*[\d.]+\s+[\d.]+\s+[\d.]+/.test(oklchStr)) {
+          return oklchStr;
+        }
+        
+        // Otherwise, return a default valid OKLCH string
+        return 'oklch(0.5 0.2 240)';
+      }
+      
+      // Ensure valid hex value
+      function ensureValidHex(hexStr) {
+        if (!hexStr) return '#808080';
+        
+        // If it's already a valid hex string, return it
+        if (hexStr.startsWith('#') && (hexStr.length === 7 || hexStr.length === 9)) {
+          return hexStr;
+        }
+        
+        // If it's a hex without #, add it
+        if (/^[0-9a-fA-F]{6}$/.test(hexStr)) {
+          return '#' + hexStr;
+        }
+        
+        // Default fallback
+        return '#808080';
+      }
+      
+      // Check if we have P3 labels
+      function hasP3Labels() {
+        const p3Value = getSafeValue('p3Value', '');
+        const figmaP3Value = getSafeValue('figmaP3Value', '');
+        
+        // Clean the figmaP3Value for comparison
+        const cleanedFigmaP3 = figmaP3Value.replace(/^#+/, '');
+        
+        return p3Value.length > 0 && figmaP3Value.length > 0 && 
+               p3Value !== 'color(display-p3 0.5 0.5 0.5)' && 
+               cleanedFigmaP3 !== '808080';
+      }
+      
+      // Track if a preview is currently being generated
+      let isGeneratingPreview = false;
+      
+      // Function to update Figma P3 value display with proper format
+      function updateFigmaP3Display(value) {
+        const figmaP3Element = document.getElementById('figmaP3Value');
+        if (figmaP3Element && value) {
+          console.log('Updating Figma P3 display with raw value:', value);
+          
+          // First, completely clear the element
+          while (figmaP3Element.firstChild) {
+            figmaP3Element.removeChild(figmaP3Element.firstChild);
+          }
+          
+          // Clean the value to ensure proper format
+          const cleanedValue = cleanFigmaP3Value(value);
+          
+          // Set the text content directly - no HTML
+          figmaP3Element.textContent = cleanedValue;
+          
+          console.log('Updated Figma P3 display to:', cleanedValue);
+        }
+      }
+      
+      // Apply the fix to ensure Figma P3 values are displayed correctly
+      // This runs immediately to fix any existing values
+      updateFigmaP3Display(document.getElementById('figmaP3Value')?.textContent || '');
+      
+      // Function to update button color based on current hue
+      function updateButtonColor(hue) {
+        const button = document.getElementById('generatePreview');
+        if (!button) return;
+        
+        // Create a vibrant color based on the hue
+        // Using a fixed lightness (0.55) and the buttonChroma value
+        const buttonColor = `oklch(0.55 ${defaults.buttonChroma} ${hue})`;
+        
+        // Apply the color to the button
+        button.style.backgroundColor = buttonColor;
+        
+        // Calculate a darker version for hover state
+        const hoverColor = `oklch(0.5 ${defaults.buttonChroma} ${hue})`;
+        
+        // Create or update the style element for hover state
+        let styleElement = document.getElementById('dynamicButtonStyle');
+        if (!styleElement) {
+          styleElement = document.createElement('style');
+          styleElement.id = 'dynamicButtonStyle';
+          document.head.appendChild(styleElement);
+        }
+        
+        // Update the style rules
+        styleElement.textContent = `
+          .preview-button:hover {
+            background-color: ${hoverColor};
+          }
+        `;
+        
+        console.log('Updated button color to:', buttonColor);
+      }
+      
+      // Initialize UI with default values
+      function initializeDefaultValues() {
+        // Set background color defaults
+        const bgColorInput = document.getElementById('bgColorInput');
+        const bgColorValue = document.getElementById('bgColorValue');
+        
+        if (bgColorInput) {
+          bgColorInput.value = defaults.backgroundColor;
+          // Add event listener to update the text when color changes
+          bgColorInput.addEventListener('input', function() {
+            if (bgColorValue) {
+              bgColorValue.textContent = this.value.toUpperCase();
+            }
+            
+            // Set CSS variables at document level
+            document.documentElement.style.setProperty('--bg-color', this.value);
+            document.documentElement.style.setProperty('--text-color-bg', this.value);
+            
+            // Update chroma gradient when background color changes
+            updateChromaGradient();
+            
+            // Regenerate dynamic colors based on the new background
+            updateDynamicColorsForBackground(this.value);
+          });
+        }
+        
+        if (bgColorValue) {
+          bgColorValue.textContent = defaults.backgroundColor.toUpperCase();
+        }
+        
+        // Set foreground color defaults
+        const fgColorInput = document.getElementById('fgColorInput');
+        const fgColorValue = document.getElementById('fgColorValue');
+        
+        if (fgColorInput) {
+          fgColorInput.value = defaults.hex;
+          // Add event listener to update the text when color changes
+          fgColorInput.addEventListener('input', function() {
+            if (fgColorValue) {
+              fgColorValue.textContent = this.value.toUpperCase();
+            }
+            
+            // Set CSS variables at document level
+            document.documentElement.style.setProperty('--fg-color', this.value);
+            document.documentElement.style.setProperty('--text-color-fg', this.value);
+            
+            // Update color preview
+            const colorPreview = document.getElementById('colorPreview');
+            if (colorPreview) {
+              updateColorPreview(colorPreview.style.backgroundColor || defaults.hex, true);
+            }
+          });
+        }
+        
+        if (fgColorValue) {
+          fgColorValue.textContent = defaults.hex.toUpperCase();
+          
+          // Add event listeners for manual editing of the color value
+          fgColorValue.addEventListener('focus', function() {
+            // Store original value in case we need to revert
+            this.dataset.originalValue = this.textContent;
+          });
+          
+          fgColorValue.addEventListener('input', function() {
+            // Clean the input as user types
+            let value = this.textContent.replace(/[^0-9A-Fa-f#]/g, '');
+            
+            // Ensure it starts with #
+            if (!value.startsWith('#')) {
+              value = '#' + value;
+            }
+            
+            // Limit to 7 chars (#RRGGBB)
+            if (value.length > 7) {
+              value = value.substring(0, 7);
+            }
+            
+            this.textContent = value;
+          });
+          
+          fgColorValue.addEventListener('blur', function() {
+            // Validate on blur
+            let hexColor = this.textContent;
+            
+            // Check if it's a valid hex color
+            if (!/^#[0-9A-Fa-f]{6}$/i.test(hexColor)) {
+              // Revert to original or default
+              hexColor = this.dataset.originalValue || defaults.hex;
+              this.textContent = hexColor;
+            }
+            
+            // Update the color input to match
+            if (fgColorInput) {
+              fgColorInput.value = hexColor;
+              
+              // Trigger input event to update other UI elements
+              const event = new Event('input', { bubbles: true });
+              fgColorInput.dispatchEvent(event);
+            }
+          });
+          
+          // Handle Enter key to apply changes
+          fgColorValue.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.blur();
+            }
+          });
+        }
+
+        // Set initial button color based on default hue
+        updateButtonColor(defaults.hue);
+        
+        // Set CSS variables for dynamic colors at document level
+        document.documentElement.style.setProperty('--bg-color', defaults.backgroundColor);
+        document.documentElement.style.setProperty('--fg-color', defaults.hex);
+        document.documentElement.style.setProperty('--text-color-bg', defaults.backgroundColor);
+        document.documentElement.style.setProperty('--text-color-fg', defaults.hex);
+        
+        // Generate initial dynamic colors based on the default background
+        updateDynamicColorsForBackground(defaults.backgroundColor);
+      }
+      
+      // Helper function to update dynamic colors when background changes
+      function updateDynamicColorsForBackground(backgroundColor) {
+        try {
+          const rgb = parseRgb(backgroundColor);
+          if (rgb) {
+            const dynamicColors = generateDynamicColors(
+              rgb.r / 255, 
+              rgb.g / 255, 
+              rgb.b / 255, 
+              currentPreviewHue || defaults.hue
+            );
+            
+            // Apply to document root for consistent inheritance
+            document.documentElement.style.setProperty('--value-text', dynamicColors.textColor);
+            document.documentElement.style.setProperty('--value-secondary', dynamicColors.textSecondary);
+            document.documentElement.style.setProperty('--value-tertiary', dynamicColors.textTertiary);
+            
+            console.log('✅ Updated dynamic colors for background:', backgroundColor);
+          }
+        } catch (error) {
+          console.error('❌ Failed to update dynamic colors:', error);
+        }
+      }
+      
+      // Function to calculate and display APCA with improved edge case handling
+      function calculateAndDisplayAPCA(backgroundColor, contrastValue) {
+        console.log('Calculating APCA with background:', backgroundColor, 'contrast:', contrastValue);
+        
+        if (!backgroundColor) {
+          console.warn('No background color provided for APCA calculation');
+          return null;
+        }
+        
+        try {
+          // Convert background color to sRGB for APCA calculations
+          const bgRGB = parseColorToRGB(backgroundColor);
+          console.log('Background RGB:', bgRGB);
+          
+          if (!bgRGB) {
+            console.warn('Failed to parse background color for APCA calculation');
+            return null;
+          }
+          
+          // Calculate APCA value
+          const apcaValue = parseFloat(contrastValue) || 60;
+          console.log('Target APCA value:', apcaValue);
+          
+          // Handle edge cases
+          const isWhiteBackground = bgRGB.r > 0.95 && bgRGB.g > 0.95 && bgRGB.b > 0.95;
+          const isBlackBackground = bgRGB.r < 0.05 && bgRGB.g < 0.05 && bgRGB.b < 0.05;
+          
+          let textColor;
+          
+          if (isWhiteBackground && apcaValue <= 0) {
+            // For white background with APCA 0, use pure white text
+            textColor = { r: 1, g: 1, b: 1 };
+            console.log('Edge case: White background with APCA 0, using pure white text');
+          } else if (isBlackBackground && apcaValue >= 105) {
+            // For black background with high APCA, use pure white text
+            textColor = { r: 1, g: 1, b: 1 };
+            console.log('Edge case: Black background with high APCA, using pure white text');
+          } else if (apcaValue >= 98) {
+            // For very high APCA values (98+), handle specially to avoid sudden jumps to black
+            console.log('Edge case: Very high APCA value (98+), handling specially');
+            
+            // Try to get a color with APCA 98 first
+            const baseTextColor = window.APCACHromatic.getTextColorFromContrast(
+              bgRGB,
+              98,
+              window.APCACHromatic.colorSpaces.sRGB
+            );
+            
+            if (baseTextColor) {
+              // For white/light backgrounds, we want to get darker (but not black)
+              if (isLightBackground(bgRGB)) {
+                // Calculate how much darker we should go based on how much over 98 the APCA value is
+                const darknessFactor = Math.min((apcaValue - 98) / 7, 1); // Cap at 1 (APCA 105)
+                
+                // Interpolate between the APCA 98 color and a very dark gray (not pure black)
+                textColor = {
+                  r: Math.max(baseTextColor.r * (1 - darknessFactor), 0.05),
+                  g: Math.max(baseTextColor.g * (1 - darknessFactor), 0.05),
+                  b: Math.max(baseTextColor.b * (1 - darknessFactor), 0.05)
+                };
+                
+                console.log('Light background with high APCA, darkening gradually:', textColor);
+              } else {
+                // For dark backgrounds, we want to get lighter (but not pure white)
+                // Calculate how much lighter we should go based on how much over 98 the APCA value is
+                const lightnessFactor = Math.min((apcaValue - 98) / 7, 1); // Cap at 1 (APCA 105)
+                
+                // Interpolate between the APCA 98 color and a very light gray (not pure white)
+                textColor = {
+                  r: Math.min(baseTextColor.r + (0.95 - baseTextColor.r) * lightnessFactor, 0.95),
+                  g: Math.min(baseTextColor.g + (0.95 - baseTextColor.g) * lightnessFactor, 0.95),
+                  b: Math.min(baseTextColor.b + (0.95 - baseTextColor.b) * lightnessFactor, 0.95)
+                };
+                
+                console.log('Dark background with high APCA, lightening gradually:', textColor);
+              }
+            } else {
+              // Fallback if we couldn't get a base color
+              textColor = isLightBackground(bgRGB) 
+                ? { r: 0.05, g: 0.05, b: 0.05 }  // Very dark gray for light backgrounds
+                : { r: 0.95, g: 0.95, b: 0.95 }; // Very light gray for dark backgrounds
+              
+              console.log('Fallback for high APCA:', textColor);
+            }
+          } else {
+            // Normal case - use APCA to calculate text color
+            textColor = window.APCACHromatic.getTextColorFromContrast(
+              bgRGB,
+              apcaValue,
+              window.APCACHromatic.colorSpaces.sRGB
+            );
+            
+            if (!textColor) {
+              console.warn('APCA calculation failed to return a text color');
+              // Fallback to a reasonable default
+              textColor = isLightBackground(bgRGB) ? { r: 0, g: 0, b: 0 } : { r: 1, g: 1, b: 1 };
+              console.log('Using fallback text color:', textColor);
+            }
+          }
+          
+          console.log('Calculated text color:', textColor);
+          
+          // Update the APCA value display
+          const apcaValueElement = document.getElementById('apcaValue');
+          if (apcaValueElement) {
+            apcaValueElement.textContent = apcaValue.toFixed(1);
+          }
+          
+          // Update the APCA description
+          updateAPCADescription(apcaValue);
+          
+          // Update OKLCH value based on the calculated text color
+          updateOKLCHValue(textColor, apcaValue);
+          
+          return textColor;
+        } catch (error) {
+          console.error('Error in APCA calculation:', error);
+          return null;
+        }
+      }
+      
+      // Helper function to determine if a background is light
+      function isLightBackground(bgRGB) {
+        // Simple luminance formula
+        return (0.299 * bgRGB.r + 0.587 * bgRGB.g + 0.114 * bgRGB.b) > 0.5;
+      }
+      
+      // Function to update OKLCH value based on the calculated text color and APCA value
+      function updateOKLCHValue(textColor, apcaValue) {
+        const oklchValueElement = document.getElementById('oklchValue');
+        if (!oklchValueElement) return;
+        
+        try {
+          // For very high APCA values (98+), ensure we don't suddenly jump to 0% lightness
+          if (apcaValue >= 98) {
+            // Calculate lightness based on the RGB values
+            const lightness = Math.round((0.299 * textColor.r + 0.587 * textColor.g + 0.114 * textColor.b) * 100);
+            
+            // Ensure lightness doesn't suddenly drop to 0 for high APCA values
+            // For APCA 98-105, gradually decrease lightness but don't go below 5%
+            let adjustedLightness;
+            
+            if (apcaValue >= 105) {
+              adjustedLightness = 5; // Minimum lightness
+            } else {
+              // Linear interpolation between normal lightness at APCA 98 and 5% at APCA 105
+              const factor = (apcaValue - 98) / 7;
+              adjustedLightness = Math.max(lightness * (1 - factor) + 5 * factor, 5);
+            }
+            
+            console.log(`High APCA ${apcaValue}: Adjusting lightness from ${lightness}% to ${adjustedLightness}%`);
+            
+            // Update the OKLCH value with the adjusted lightness
+            const hue = 0; // Neutral hue for grayscale
+            const chroma = 0; // No chroma for grayscale
+            
+            oklchValueElement.innerHTML = `<span>oklch(${adjustedLightness.toFixed(2)}% ${chroma.toFixed(4)} ${hue})</span>`;
+          } else {
+            // For normal APCA values, convert RGB to OKLCH
+            // This is a simplified conversion - a proper conversion would use color space transformations
+            const lightness = Math.round((0.299 * textColor.r + 0.587 * textColor.g + 0.114 * textColor.b) * 100);
+            const chroma = 0; // Assuming grayscale for simplicity
+            const hue = 0; // Neutral hue for grayscale
+            
+            oklchValueElement.innerHTML = `<span>oklch(${lightness.toFixed(2)}% ${chroma.toFixed(4)} ${hue})</span>`;
+          }
+        } catch (error) {
+          console.error('Error updating OKLCH value:', error);
+          // Fallback to a neutral value
+          oklchValueElement.innerHTML = '<span>oklch(50% 0 0)</span>';
+        }
+      }
+      
+      // Function to update APCA description based on contrast value
+      function updateAPCADescription(contrastValue) {
+        // Get the APCA description element
+        const apcaDescription = document.getElementById('apcaDescription');
+        if (!apcaDescription) return;
+        
+        // Parse the contrast value
+        const apcaValue = parseFloat(contrastValue);
+        if (isNaN(apcaValue)) return;
+        
+        // Get the appropriate description
+        const description = getAPCADescription(apcaValue);
+        
+        // Update the element content
+        apcaDescription.textContent = description;
+        
+        // Use Figma color variables instead of dynamic color variables for consistent styling
+        apcaDescription.style.color = "var(--figma-color-text-secondary, #666666)";
+        
+        // Make sure it's visible
+        apcaDescription.style.display = 'block';
+      }
+      
+      // Function to parse color string to RGB object
+      function parseColorToRGB(colorStr) {
+        console.log('Parsing color to RGB:', colorStr);
+        
+        if (!colorStr) return null;
+        
+        try {
+          // Handle hex colors
+          if (colorStr.startsWith('#')) {
+            return hexToRGB(colorStr);
+          }
+          
+          // Handle rgb/rgba colors
+          if (colorStr.startsWith('rgb')) {
+            return rgbStringToRGB(colorStr);
+          }
+          
+          // Handle display-p3 colors
+          if (colorStr.includes('display-p3')) {
+            return p3ToRGB(colorStr);
+          }
+          
+          console.warn('Unrecognized color format:', colorStr);
+          return null;
+        } catch (error) {
+          console.error('Error parsing color:', error);
+          return null;
+        }
+      }
+      
+      // Convert hex to RGB
+      function hexToRGB(hex) {
+        // Remove # if present
+        hex = hex.replace(/^#/, '');
+        
+        // Handle shorthand hex
+        if (hex.length === 3) {
+          hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        const r = parseInt(hex.substring(0, 2), 16) / 255;
+        const g = parseInt(hex.substring(2, 4), 16) / 255;
+        const b = parseInt(hex.substring(4, 6), 16) / 255;
+        
+        return { r, g, b };
+      }
+      
+      // Convert rgb/rgba string to RGB
+      function rgbStringToRGB(rgbStr) {
+        const values = rgbStr.match(/\d+(\.\d+)?/g);
+        if (!values || values.length < 3) return null;
+        
+        return {
+          r: parseFloat(values[0]) / 255,
+          g: parseFloat(values[1]) / 255,
+          b: parseFloat(values[2]) / 255
+        };
+      }
+      
+      // Convert display-p3 to RGB
+      function p3ToRGB(p3Str) {
+        const values = p3Str.match(/\d+(\.\d+)?/g);
+        if (!values || values.length < 3) return null;
+        
+        // Simple approximation - for more accuracy, proper color space conversion is needed
+        return {
+          r: parseFloat(values[0]),
+          g: parseFloat(values[1]),
+          b: parseFloat(values[2])
+        };
+      }
+      
+      // Helper function to get the current Figma P3 value
+      function getCurrentFigmaP3Value() {
+        const figmaP3Element = document.getElementById('figmaP3Value');
+        const figmaP3Value = figmaP3Element ? figmaP3Element.textContent : null;
+        
+        if (figmaP3Value && figmaP3Value.trim() !== '') {
+          return cleanFigmaP3Value(figmaP3Value);
+        }
+        return null;
+      }
+      
+      // Helper function to convert hex to display-p3 CSS format
+      function hexToDisplayP3(hexColor) {
+        if (!hexColor || !hexColor.startsWith('#')) return hexColor;
+        
+        try {
+          const hex = hexColor.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16) / 255;
+          const g = parseInt(hex.substring(2, 4), 16) / 255;
+          const b = parseInt(hex.substring(4, 6), 16) / 255;
+          return `color(display-p3 ${r.toFixed(6)} ${g.toFixed(6)} ${b.toFixed(6)})`;
+        } catch (error) {
+          console.error('Error converting hex to display-p3:', error);
+          return hexColor;
+        }
+      }
+      
+      // Helper function to get the best available color (P3 if available, otherwise fallback)
+      function getBestAvailableColor(fallbackColor) {
+        const p3Value = getCurrentFigmaP3Value();
+        
+        if (p3Value) {
+          // If P3 value is already in display-p3 format, use it directly
+          if (p3Value.includes('display-p3')) {
+            return p3Value;
+          }
+          // If P3 value is in hex format, convert to display-p3
+          if (p3Value.startsWith('#')) {
+            return hexToDisplayP3(p3Value);
+          }
+        }
+        
+        // Fallback to the provided color
+        return fallbackColor;
+      }
+      
+      // Function to update all color previews with P3 values
+      function updateAllColorPreviews() {
+        console.log('Updating all color previews with P3 values');
+        
+        // Update main color preview
+        const colorPreview = document.getElementById('colorPreview');
+        if (colorPreview) {
+          const bestColor = getBestAvailableColor(colorPreview.style.backgroundColor || '#ffffff');
+          console.log('Updating main color preview with:', bestColor);
+          colorPreview.style.backgroundColor = bestColor;
+          updatePreviewBorder(colorPreview, bestColor);
+        }
+        
+        // Update any other color previews in the UI
+        const allPreviews = document.querySelectorAll('.color-preview:not(#colorPreview)');
+        allPreviews.forEach(preview => {
+          const currentColor = preview.style.backgroundColor;
+          const bestColor = getBestAvailableColor(currentColor);
+          console.log('Updating additional preview with:', bestColor);
+          preview.style.backgroundColor = bestColor;
+          updatePreviewBorder(preview, bestColor);
+        });
+      }
+      
+      // Function to update the color preview with Figma P3 values
+      function updateColorPreview(color, useP3 = true) {
+        console.log('Updating color preview with color:', color, 'useP3:', useP3);
+        
+        const colorPreview = document.getElementById('colorPreview');
+        if (!colorPreview) return;
+        
+        let previewColor = color; // The color that will be applied to the preview
+        
+        try {
+          // If we should use P3 and the color is a valid hex or RGB
+          if (useP3) {
+            // Get the Figma P3 value if available
+            const p3Value = getCurrentFigmaP3Value();
+            
+            if (p3Value) {
+              // Convert to display-p3 format for CSS if needed
+              let p3CssValue;
+              if (p3Value.startsWith('#')) {
+                p3CssValue = hexToDisplayP3(p3Value);
+                previewColor = p3Value; // Store the hex value for later use
+                
+                // Update the foreground color to match the P3 value
+                updateForegroundColor(p3Value);
+              } else if (p3Value.includes('display-p3')) {
+                p3CssValue = p3Value;
+              } else {
+                p3CssValue = color;
+                previewColor = color;
+              }
+              
+              console.log('Using P3 value for preview:', p3CssValue);
+              colorPreview.style.backgroundColor = p3CssValue;
+            } else {
+              // Fallback to the original color if no P3 value is available
+              console.log('No P3 value available, using original color:', color);
+              colorPreview.style.backgroundColor = color;
+              previewColor = color;
+              
+              // Try to update foreground color with the original color if it's valid
+              if (color.startsWith('#')) {
+                updateForegroundColor(color);
+              }
+            }
+          } else {
+            // Use the provided color directly
+            console.log('Using provided color directly:', color);
+            colorPreview.style.backgroundColor = color;
+            previewColor = color;
+            
+            // Try to update foreground color with direct color if it's valid
+            if (color.startsWith('#')) {
+              updateForegroundColor(color);
+            }
+          }
+          
+          // Get background color
+          const bgColorInput = document.getElementById('bgColorInput');
+          const bgColor = bgColorInput ? bgColorInput.value : '#ffffff';
+          
+          // Update the data attribute for matching background
+          colorPreview.dataset.matchesBg = previewColor === bgColor ? 'true' : 'false';
+          
+          // Set the CSS variable for background color
+          document.documentElement.style.setProperty('--bg-color', bgColor);
+          
+          // Update border color based on the background color
+          updatePreviewBorder(colorPreview, colorPreview.style.backgroundColor);
+          
+          // Store the current color value in a data attribute for easier access
+          colorPreview.dataset.currentColor = previewColor;
+          
+          // Update the color values container with the preview color
+          updateColorValuesContainer();
+          
+          // Remove empty class from preview section
+          const previewSection = document.querySelector('.preview-section');
+          if (previewSection) {
+            previewSection.classList.remove('empty');
+          }
+        } catch (error) {
+          console.error('Error updating color preview:', error);
+          // Fallback to the original color
+          colorPreview.style.backgroundColor = color;
+          colorPreview.dataset.currentColor = color;
+        }
+      }
+      
+      // Function to update the preview border based on the background color
+      function updatePreviewBorder(previewElement, backgroundColor) {
+        if (!previewElement) return;
+        
+        try {
+          // Parse the color to determine if it's light or dark
+          let isLight = false;
+          
+          if (backgroundColor.startsWith('#')) {
+            // Handle hex colors
+            const hex = backgroundColor.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            // Simple luminance formula
+            isLight = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
+          } else if (backgroundColor.startsWith('rgb')) {
+            // Handle RGB colors
+            const values = backgroundColor.match(/\d+/g);
+            if (values && values.length >= 3) {
+              const r = parseInt(values[0]);
+              const g = parseInt(values[1]);
+              const b = parseInt(values[2]);
+              // Simple luminance formula
+              isLight = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
+            }
+          } else if (backgroundColor.includes('display-p3')) {
+            // Handle display-p3 colors
+            const values = backgroundColor.match(/\d+(\.\d+)?/g);
+            if (values && values.length >= 3) {
+              const r = parseFloat(values[0]);
+              const g = parseFloat(values[1]);
+              const b = parseFloat(values[2]);
+              // Simple luminance formula for P3 values (0-1 range)
+              isLight = (0.299 * r + 0.587 * g + 0.114 * b) > 0.5;
+            }
+          }
+          
+          // Set border color based on background lightness
+          const borderOpacity = isLight ? '15%' : '60%';
+          const borderColor = isLight 
+            ? `color-mix(in srgb, black ${borderOpacity}, transparent)`
+            : `color-mix(in srgb, white ${borderOpacity}, transparent)`;
+          
+          // Check if color is similar to background
+          const isSimilar = isColorSimilarToBackground(previewElement.style.backgroundColor, p3Value);
+          previewElement.setAttribute('data-matches-bg', isSimilar.toString());
+          
+          // Only add border if colors are similar (matching background)
+          if (isSimilar) {
+            previewElement.style.border = '1px dashed rgba(128, 128, 128, 0.3)';
+          } else {
+            previewElement.style.border = 'none';
+          }
+        } catch (error) {
+          console.error('Error updating preview border:', error);
+          // No fallback border needed as we're only showing borders for similar colors
+          previewElement.style.border = 'none';
+        }
+      }
+      
+      // Function to handle messages from the plugin
+      window.onmessage = function(event) {
+        const message = event.data.pluginMessage;
+        if (!message) return;
+        
+        console.log('Received message:', message);
+        
+        if (message.type === 'init') {
+          // Initialize with the selected color
+          if (message.color) {
+            console.log('Initializing with color:', message.color);
+            
+            // Update the color preview
+            updateColorPreview(message.color, true);
+            
+            // Update other UI elements with the color
+            // ... (existing code)
+            
+            // If we have a Figma P3 value, update all previews
+            if (message.figmaP3) {
+              const figmaP3Element = document.getElementById('figmaP3Value');
+              if (figmaP3Element) {
+                figmaP3Element.textContent = message.figmaP3;
+                console.log('Set Figma P3 value:', message.figmaP3);
+                
+                // Update all color previews with the P3 value
+                setTimeout(updateAllColorPreviews, 50);
+              }
+            }
+          }
+        } else if (message.type === 'preview-created') {
+          console.log('Preview created successfully');
+          // Handle preview creation success
+        } else if (message.type === 'update-figma-p3') {
+          // Update the Figma P3 value
+          const figmaP3Element = document.getElementById('figmaP3Value');
+          if (figmaP3Element && message.value) {
+            figmaP3Element.textContent = message.value;
+            console.log('Updated Figma P3 value:', message.value);
+            
+            // Update all color previews with the new P3 value
+            setTimeout(updateAllColorPreviews, 50);
+          }
+        }
+      };
+      
+      // Event listener for background color input changes
+      document.getElementById('bgColorInput').addEventListener('input', function() {
+        const bgColorValue = document.getElementById('bgColorValue');
+        if (bgColorValue) {
+          bgColorValue.textContent = this.value.toUpperCase();
+          // Remove the direct style assignment - use CSS variables instead
+          // bgColorValue.style.color = this.value;
+        }
+        
+        // Set the CSS variable for background color
+        document.documentElement.style.setProperty('--bg-color', this.value);
+        document.documentElement.style.setProperty('--text-color-bg', this.value);
+        
+        // Update the color preview with the new background color
+        updateColorPreview(this.value, true);
+        
+        // Update color values container with new derived styles
+        updateColorValuesContainer();
+      });
+
+      // Event listener for the Generate Preview button
+      document.getElementById('generatePreview').addEventListener('click', function() {
+        console.log('Generate Preview button clicked');
+        generatePreview();
+      });
+
+      // Listen for messages from the plugin
+      window.onmessage = (event) => {
+        const message = event.data.pluginMessage;
+        if (!message) return;
+        
+        console.log('Received message from plugin:', message.type, message);
+        
+        if (message.type === 'initial-color' && message.color) {
+          console.log('Received initial color from plugin:', message.color);
+          
+          // Ensure the color value is properly formatted
+          let colorValue = message.color;
+          
+          // If the color doesn't start with #, add it
+          if (colorValue && !colorValue.startsWith('#')) {
+            colorValue = '#' + colorValue;
+          }
+          
+          // If the color starts with ##, remove one #
+          if (colorValue && colorValue.startsWith('##')) {
+            colorValue = colorValue.substring(1);
+          }
+          
+          // Clean and update the Figma P3 value
+          updateFigmaP3Display(colorValue);
+          
+          // Extract and update hue value from the color
+          const extractedHue = extractHueFromHexColor(colorValue);
+          if (extractedHue !== null) {
+            // Use the combined function to update all hue-related displays
+            updateHueDisplay(extractedHue);
+          }
+          
+          // Also update the preview section to not be empty
+          const previewSection = document.querySelector('.preview-section');
+          if (previewSection) {
+            previewSection.classList.remove('empty');
+          }
+        } else if (message.type === 'preview-created') {
+          showStatusMessage('Preview created');
+          isGeneratingPreview = false;
+        } else if (message.type === 'update-figma-selection' || message.type === 'real-time-update') {
+          // Handle color updates from Figma selection changes
+          if (message.color) {
+            let colorValue = message.color;
+            
+            // Format the color value
+            if (!colorValue.startsWith('#')) {
+              colorValue = '#' + colorValue;
+            }
+            
+            // Update Figma P3 value
+            updateFigmaP3Display(colorValue);
+            
+            // Extract and update hue value from the color using the new combined function
+            const extractedHue = extractHueFromHexColor(colorValue);
+            if (extractedHue !== null) {
+              updateHueDisplay(extractedHue);
+            }
+          }
+        }
+      };
+      
+      // Fix any existing Figma P3 values on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize default values
+        initializeDefaultValues();
+        
+        const figmaP3Element = document.getElementById('figmaP3Value');
+        if (figmaP3Element) {
+          const currentValue = figmaP3Element.textContent;
+          if (currentValue) {
+            updateFigmaP3Display(currentValue);
+          }
+          
+          // Override the element's textContent setter to always clean values
+          Object.defineProperty(figmaP3Element, 'textContent', {
+            set: function(value) {
+              console.log('Setting figmaP3Value.textContent:', value);
+              const cleanedValue = cleanFigmaP3Value(value);
+              Element.prototype.__lookupSetter__('textContent').call(this, cleanedValue);
+              
+              // Update color preview when the P3 value changes
+              setTimeout(updateAllColorPreviews, 50);
+            },
+            get: function() {
+              return Element.prototype.__lookupGetter__('textContent').call(this);
+            }
+          });
+          
+          // Add a MutationObserver to ensure any future changes are properly formatted
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                // Get the current value, which might include nested elements
+                let newValue = figmaP3Element.textContent || '';
+                
+                // Check if there are any nested spans
+                const nestedSpans = figmaP3Element.querySelectorAll('span');
+                if (nestedSpans.length > 0) {
+                  console.log('Found nested spans in figmaP3Value, cleaning up');
+                  // Get the text from the first nested span
+                  newValue = nestedSpans[0].textContent || '';
+                  // Clean up the element
+                  updateFigmaP3Display(newValue);
+                } else if (newValue && (!newValue.startsWith('#') || newValue.startsWith('##'))) {
+                  // If the value doesn't start with # or starts with ##, clean it
+                  updateFigmaP3Display(newValue);
+                }
+                
+                // Update color preview when the P3 value changes
+                setTimeout(updateAllColorPreviews, 50);
+              }
+            });
+          });
+          
+          observer.observe(figmaP3Element, { 
+            characterData: true, 
+            childList: true,
+            subtree: true 
+          });
+        }
+        
+        // Prevent inline styles from being added to APCA row and description
+        const apcaRow = document.querySelector('.apca-row');
+        const apcaDescription = document.getElementById('apcaDescription');
+        
+        if (apcaRow) {
+          // Remove any existing inline styles
+          apcaRow.removeAttribute('style');
+          
+          // Create a MutationObserver to prevent inline styles
+          const rowObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.attributeName === 'style') {
+                apcaRow.removeAttribute('style');
+              }
+            });
+          });
+          
+          rowObserver.observe(apcaRow, { attributes: true });
+        }
+        
+        if (apcaDescription) {
+          // Remove any existing inline styles
+          apcaDescription.removeAttribute('style');
+          
+          // Create a MutationObserver to prevent inline styles
+          const descObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.attributeName === 'style') {
+                apcaDescription.removeAttribute('style');
+              }
+            });
+          });
+          
+          descObserver.observe(apcaDescription, { attributes: true });
+        }
+        
+        // Update color preview with P3 values
+        setTimeout(updateAllColorPreviews, 100);
+      });
+
+      // Function to generate preview with proper APCA handling
+      function generatePreview() {
+        console.log('Generating preview with APCA handling');
+        
+        try {
+          // Check if we have an APCACH value
+          const apcachValueElement = document.getElementById('apcachValue');
+          const apcachValue = apcachValueElement ? apcachValueElement.textContent : null;
+          
+          if (apcachValue && apcachValue.includes('apcach(')) {
+            console.log('Using APCACH value for preview:', apcachValue);
+            
+            // Get the color from APCACH
+            const resultColor = handleAPCACHConversion(apcachValue);
+            if (!resultColor) {
+              console.warn('Failed to get color from APCACH conversion for preview');
+              return;
+            }
+            
+            // Convert to hex
+            const hexColor = rgbToHex(resultColor.r, resultColor.g, resultColor.b);
+            
+            // Get other values needed for preview
+            const hueInput = document.getElementById('hueInput');
+            const chromaInput = document.getElementById('chromaInput');
+            const contrastInput = document.getElementById('contrastInput');
+            
+            const hue = hueInput ? hueInput.value : 0;
+            const chroma = chromaInput ? chromaInput.value : 0;
+            const contrast = contrastInput ? contrastInput.value : 60;
+            
+            // Get background color
+            const bgColorInput = document.getElementById('bgColorInput');
+            const backgroundColor = bgColorInput ? bgColorInput.value : '#ffffff';
+            
+            // Prepare data for preview
+            const previewData = {
+              type: 'create-preview',
+              backgroundColor: backgroundColor,
+              textColor: hexColor,
+              hue: hue,
+              chroma: chroma,
+              contrast: contrast,
+              apcachValue: apcachValue, // Include the APCACH value for reference
+              // Add foreground color
+              foregroundColor: document.getElementById('fgColorInput') ? document.getElementById('fgColorInput').value : '#000000'
+            };
+            
+            console.log('Sending preview data with APCACH:', previewData);
+            
+            // Send message to plugin code
+            parent.postMessage({ pluginMessage: previewData }, '*');
+            return;
+          }
+          
+          // If no APCACH value, proceed with normal preview generation
+          // ... (existing preview generation code)
+          
+          // Get background color
+          const bgColorInput = document.getElementById('bgColorInput');
+          const backgroundColor = bgColorInput ? bgColorInput.value : '#ffffff';
+          console.log('Background color input:', backgroundColor);
+          
+          // Get contrast value
+          const contrastInput = document.getElementById('contrastInput');
+          const contrastValue = contrastInput ? contrastInput.value : 60;
+          console.log('Contrast value:', contrastValue);
+          
+          // Get Figma P3 value if available
+          const figmaP3Value = getCurrentFigmaP3Value();
+          console.log('Figma P3 value:', figmaP3Value);
+          
+          // Always prioritize using Figma P3 color for background
+          const previewBackgroundColor = figmaP3Value || backgroundColor;
+          
+          console.log('Using background color for preview:', previewBackgroundColor);
+          
+          // Update the color preview with the P3 value
+          updateColorPreview(previewBackgroundColor, true);
+          
+          // Calculate text color using APCA
+          const textColor = calculateAndDisplayAPCA(backgroundColor, contrastValue);
+          
+          if (!textColor) {
+            console.warn('Failed to calculate text color for preview');
+            return;
+          }
+          
+          // Convert text color to hex for preview
+          const textColorHex = rgbToHex(textColor.r, textColor.g, textColor.b);
+          console.log('Text color hex:', textColorHex);
+          
+          // Get other values needed for preview
+          const hueInput = document.getElementById('hueInput');
+          const chromaInput = document.getElementById('chromaInput');
+          
+          const hue = hueInput ? hueInput.value : 0;
+          const chroma = chromaInput ? chromaInput.value : 0;
+          
+          // Determine if we should use the Figma P3 value for text
+          const isWhiteBackground = backgroundColor === '#ffffff' || backgroundColor === 'rgb(255, 255, 255)';
+          const isZeroContrast = parseFloat(contrastValue) === 0;
+          
+          // Prepare data for preview
+          const previewData = {
+            type: 'create-preview',
+            backgroundColor: previewBackgroundColor, // Always use Figma P3 if available
+            textColor: textColorHex,
+            hue: hue,
+            chroma: chroma,
+            contrast: contrastValue,
+            useP3ForBackground: true, // Flag to indicate we're using P3 color
+            // Add foreground color
+            foregroundColor: document.getElementById('fgColorInput') ? document.getElementById('fgColorInput').value : '#000000'
+          };
+          
+          // For white background with APCA 0, use the Figma P3 value for text color as well
+          if (isWhiteBackground && isZeroContrast && figmaP3Value) {
+            previewData.useP3ForText = true;
+            console.log('Using Figma P3 color for text with white background and APCA 0');
+          }
+          
+          console.log('Sending preview data:', previewData);
+          
+          // Send message to plugin code
+          parent.postMessage({ pluginMessage: previewData }, '*');
+        } catch (error) {
+          console.error('Error generating preview:', error);
+        }
+      }
+      
+      // Convert RGB values to hex
+      function rgbToHex(r, g, b) {
+        // Handle values in 0-1 range
+        if (r <= 1 && g <= 1 && b <= 1) {
+          r = Math.round(r * 255);
+          g = Math.round(g * 255);
+          b = Math.round(b * 255);
+        }
+        
+        return '#' + 
+          ((1 << 24) + (r << 16) + (g << 8) + b)
+            .toString(16)
+            .slice(1);
+      }
+
+      // Function to parse APCACH value
+      function parseAPCACHValue(apcachStr) {
+        try {
+          // Normalize the input string by removing extra spaces
+          apcachStr = apcachStr.trim().replace(/\s+/g, ' ');
+          
+          // Define regex patterns for different formats
+          const apcachRegex = /apcach\s*\(\s*([^,]+),\s*([^,]+),\s*([^)]+)\)/i;
+          const crToBgWithParensRegex = /crToBg\s*\(\s*["']([^"']+)["']\s*,\s*([^)]+)\)/i;
+          const crToBlackWithParensRegex = /crToBlack\s*\(\s*([^)]+)\)/i;
+          const crToWhiteWithParensRegex = /crToWhite\s*\(\s*([^)]+)\)/i;
+          const crToBgWithoutParensRegex = /crToBg\s+([^,]+)/i;
+          const crToBlackWithoutParensRegex = /crToBlack\s+([^,]+)/i;
+          const crToWhiteWithoutParensRegex = /crToWhite\s+([^,]+)/i;
+          
+          // Match the overall apcach function
+          const match = apcachStr.match(apcachRegex);
+          
+          if (match) {
+            const functionPart = match[1].trim();
+            const chroma = parseFloat(match[2]);
+            const hue = parseFloat(match[3]);
+            
+            let functionName, targetColor, contrast;
+            
+            // Check for different formats of the cr function
+            if (functionPart) {
+              // Handle crToBg with parentheses and quotes
+              const crToMatch = functionPart.match(crToBgWithParensRegex);
+              if (crToMatch) {
+                functionName = 'crToBg';
+                targetColor = crToMatch[1];
+                contrast = parseFloat(crToMatch[2]);
+                console.log('Matched crTo format with parentheses:', { functionName, targetColor, contrast });
+                return { functionName, targetColor, contrast, hue, chroma };
+              }
+              
+              // Handle crToBlack with parentheses
+              const crToBlackMatch = functionPart.match(crToBlackWithParensRegex);
+              if (crToBlackMatch) {
+                functionName = 'crToBg';
+                targetColor = '#000000';
+                contrast = parseFloat(crToBlackMatch[1]);
+                console.log('Matched crToBlack format with parentheses:', { functionName, targetColor, contrast });
+                return { functionName, targetColor, contrast, hue, chroma };
+              }
+              
+              // Handle crToWhite with parentheses
+              const crToWhiteMatch = functionPart.match(crToWhiteWithParensRegex);
+              if (crToWhiteMatch) {
+                functionName = 'crToBg';
+                targetColor = '#ffffff';
+                contrast = parseFloat(crToWhiteMatch[1]);
+                console.log('Matched crToWhite format with parentheses:', { functionName, targetColor, contrast });
+                return { functionName, targetColor, contrast, hue, chroma };
+              }
+              
+              // Handle old format (without parentheses in the function part)
+              if (functionPart.match(crToBlackWithoutParensRegex)) {
+                const parts = functionPart.split(/\s+/);
+                functionName = 'crToBg';
+                targetColor = '#000000';
+                contrast = parseFloat(parts[1]);
+                console.log('Matched old crToBlack format without parentheses:', { functionName, targetColor, contrast });
+                return { functionName, targetColor, contrast, hue, chroma };
+              }
+              
+              if (functionPart.match(crToWhiteWithoutParensRegex)) {
+                const parts = functionPart.split(/\s+/);
+                functionName = 'crToBg';
+                targetColor = '#ffffff';
+                contrast = parseFloat(parts[1]);
+                console.log('Matched old crToWhite format without parentheses:', { functionName, targetColor, contrast });
+                return { functionName, targetColor, contrast, hue, chroma };
+              }
+              
+              if (functionPart.match(crToBgWithoutParensRegex)) {
+                const parts = functionPart.split(/\s+/);
+                functionName = 'crToBg';
+                // For crToBg without color specification, use the current background
+                const bgColorInput = document.getElementById('bgColorInput');
+                targetColor = bgColorInput ? bgColorInput.value : '#ffffff';
+                contrast = parseFloat(parts[1]);
+                console.log('Matched old crToBg format without parentheses:', { functionName, targetColor, contrast });
+                return { functionName, targetColor, contrast, hue, chroma };
+              }
+            }
+            
+            console.error('Failed to parse APCACH value:', apcachStr);
+            return null;
+          }
+          
+          console.error('Failed to parse APCACH value:', apcachStr);
+          return null;
+        } catch (error) {
+          console.error('Error parsing APCACH value:', error);
+          return null;
+        }
+      }
+
+      // Function to ensure APCACH value is in the correct format
+      function ensureCorrectAPCACHFormat(apcachValue) {
+        if (!apcachValue) return apcachValue;
+        
+        try {
+          // Parse the APCACH value
+          const parsed = parseAPCACHValue(apcachValue);
+          if (!parsed) {
+            console.warn('Could not parse APCACH value for formatting:', apcachValue);
+            return apcachValue;
+          }
+          
+          // Format it consistently with the proper syntax
+          const { functionName, targetColor, contrast, chroma, hue } = parsed;
+          
+          // Always use crToBg format with proper quotes and parentheses
+          return `apcach(crToBg("${targetColor}", ${contrast}), ${chroma.toFixed(2)}, ${Math.round(hue)})`;
+        } catch (error) {
+          console.error('Error formatting APCACH value:', error);
+          return apcachValue;
+        }
+      }
+
+      // Update the function that handles APCACH value updates
+      function updateAPCACHValueInUI(apcachValue) {
+        try {
+          const apcachValueElement = document.getElementById('apcachValue');
+          if (!apcachValueElement) return;
+          
+          // Ensure the APCACH value is in the correct format
+          const formattedValue = ensureCorrectAPCACHFormat(apcachValue);
+          
+          // Update the UI
+          apcachValueElement.textContent = formattedValue;
+          
+          // Also update the color based on the formatted value
+          try {
+            if (typeof updateColorsFromAPCACH === 'function') {
+              updateColorsFromAPCACH(formattedValue);
+            } else {
+              console.error('updateColorsFromAPCACH function is not defined');
+            }
+          } catch (error) {
+            console.error('Error updating colors from APCACH:', error);
+          }
+          
+          console.log('Updated APCACH value in UI:', formattedValue);
+        } catch (error) {
+          console.error('Error updating APCACH value in UI:', error);
+          // If there's an error, just set the raw value
+          if (apcachValueElement) {
+            apcachValueElement.textContent = apcachValue;
+          }
+        }
+      }
+
+      // Update the function that handles color updates from APCACH
+      function updateColorsFromAPCACH(apcachValue) {
+        try {
+          // Ensure the APCACH value is in the correct format
+          const formattedValue = ensureCorrectAPCACHFormat(apcachValue);
+          
+          // Parse the APCACH value
+          const parsed = parseAPCACHValue(formattedValue);
+          if (!parsed) {
+            console.warn('Could not parse APCACH value for color update:', formattedValue);
+            return;
+          }
+          
+          // Extract values
+          const { targetColor, contrast, chroma, hue } = parsed;
+          
+          // Convert APCACH to RGB
+          const rgb = handleAPCACHConversion(formattedValue);
+          
+          // Update color displays
+          updateColorDisplays(rgb);
+          
+          // Update APCA value display
+          const apcaValueElement = document.getElementById('apcaValue');
+          if (apcaValueElement) {
+            apcaValueElement.textContent = contrast.toString();
+          }
+          
+          console.log('Updated colors from APCACH:', { rgb, contrast, chroma, hue });
+        } catch (error) {
+          console.error('Error updating colors from APCACH:', error);
+        }
+      }
+
+      // Update the function that handles APCACH conversion
+      function handleAPCACHConversion(apcachValue) {
+        try {
+          // Ensure the APCACH value is in the correct format
+          const formattedValue = ensureCorrectAPCACHFormat(apcachValue);
+          
+          // Parse the APCACH value
+          const parsed = parseAPCACHValue(formattedValue);
+          if (!parsed) {
+            console.warn('Could not parse APCACH value for conversion:', formattedValue);
+            return null;
+          }
+          
+          // Extract values
+          const { targetColor, contrast, chroma, hue } = parsed;
+          
+          // Make sure APCACHromatic is available
+          if (!window.APCACHromatic) {
+            console.error('APCACHromatic not available');
+            return null;
+          }
+          
+          // Parse the background color
+          const bgRGB = parseColor(targetColor);
+          
+          // Update the thumb colors
+          updateChromaThumbColor();
+          updateAPCAThumbColor();
+          
+        } catch (error) {
+          console.error('Error in handleAPCACHConversion:', error);
+          return null;
+        }
+      }
+
+      // Update the function that handles slider updates
+      function updateAPCACHFromSlider() {
+        try {
+          // Get current slider values
+          const apcaValue = parseFloat(document.getElementById('apcaSlider').value);
+          const chromaValue = parseFloat(document.getElementById('chromaSlider').value);
+          const hueValue = parseFloat(document.getElementById('hueSlider').value);
+          
+          // Get the current background color
+          const bgColorInput = document.getElementById('bgColorInput');
+          const bgColor = bgColorInput ? bgColorInput.value : '#ffffff';
+          
+          // Create the APCACH value string in the consistent format with parentheses
+          // Always use crToBg format for all backgrounds
+          const apcachValue = `apcach(crToBg("${bgColor}", ${apcaValue}), ${chromaValue.toFixed(2)}, ${Math.round(hueValue)})`;
+          
+          // Update the UI with the new APCACH value
+          updateAPCACHValueInUI(apcachValue);
+          
+          console.log('Updated APCACH from sliders:', apcachValue);
+        } catch (error) {
+          console.error('Error updating APCACH from sliders:', error);
+        }
+      }
+
+      // Function to format APCACH values consistently before sending to plugin
+      function formatAPCACHValueForPlugin(apcachValue) {
+        return ensureCorrectAPCACHFormat(apcachValue);
+      }
+
+      // Update the function that sends values to the plugin
+      function sendColorValuesToPlugin() {
+        try {
+          // Get the current APCACH value
+          const apcachValueElement = document.getElementById('apcachValue');
+          const apcachValue = apcachValueElement ? apcachValueElement.textContent : '';
+          
+          // Format the APCACH value consistently before sending
+          const formattedApcachValue = formatAPCACHValueForPlugin(apcachValue);
+          
+          // Get other color values
+          const oklchValue = document.getElementById('oklchValue').textContent;
+          const hexValue = document.getElementById('hexValue').textContent;
+          const p3Value = document.getElementById('p3Value').textContent;
+          const figmaP3Value = document.getElementById('figmaP3Value').textContent;
+          const apcaValue = document.getElementById('apcaValue').textContent;
+          const apcaDescription = document.getElementById('apcaDescription').textContent;
+          
+          // Get the current background color
+          const bgColorInput = document.getElementById('bgColorInput');
+          const backgroundColor = bgColorInput ? bgColorInput.value : '#ffffff';
+          
+          // Get the current preview color
+          const previewColor = document.getElementById('colorPreview').style.backgroundColor;
+          
+          // Send message to plugin with all color values
+          parent.postMessage({
+            pluginMessage: {
+              type: 'generate-preview',
+              color: hexValue.replace('#', ''),
+              background: backgroundColor,
+              previewColor: previewColor,
+              values: {
+                apcach: formattedApcachValue, // Use the formatted value
+                oklch: oklchValue,
+                hex: hexValue,
+                p3: p3Value,
+                figmaP3: figmaP3Value,
+                apca: apcaValue,
+                apcaDescription: apcaDescription
+              },
+              styling: {
+                // Add any styling options here
+              }
+            }
+          }, '*');
+          
+          console.log('Sent color values to plugin:', formattedApcachValue);
+          
+          // Show loading state
+          document.getElementById('previewButton').classList.add('loading');
+          document.getElementById('previewButton').textContent = 'Generating...';
+          
+        } catch (error) {
+          console.error('Error sending color values to plugin:', error);
+          showNotification('Error generating preview: ' + error.message, 'error');
+        }
+      }
+
+      // Function to fix all APCACH values in the UI
+      function fixAllAPCACHValuesInUI() {
+        try {
+          const apcachValueElement = document.getElementById('apcachValue');
+          if (apcachValueElement && apcachValueElement.textContent) {
+            const currentValue = apcachValueElement.textContent;
+            const formattedValue = ensureCorrectAPCACHFormat(currentValue);
+            
+            if (formattedValue !== currentValue) {
+              console.log('Fixing APCACH value on page load:', { from: currentValue, to: formattedValue });
+              apcachValueElement.textContent = formattedValue;
+            }
+          }
+        } catch (error) {
+          console.error('Error fixing APCACH values in UI:', error);
+        }
+      }
+
+      // Call the fix function when the DOM is loaded
+      document.addEventListener('DOMContentLoaded', function() {
+        // Check if the observer has already been initialized
+        if (window.apcachObserverInitialized) {
+          console.log('APCACH observer already initialized, skipping setup');
+        } else {
+          // Set up the APCACH value observer
+          try {
+            setupAPCACHValueObserver();
+            window.apcachObserverInitialized = true;
+          } catch (error) {
+            console.error('Error setting up APCACH observer:', error);
+          }
+        }
+        
+        // Fix any existing APCACH values
+        fixAllAPCACHValuesInUI();
+        
+        // Initialize the APCACH value if needed
+        const apcachValueElement = document.getElementById('apcachValue');
+        if (!apcachValueElement || !apcachValueElement.textContent) {
+          initializeAPCACHValue();
+        }
+        
+        // Set up slider listeners
+        setupSliderListeners();
+      });
+
+      // Function to set up all slider listeners
+      function setupSliderListeners() {
+        // APCA slider
+        const apcaSlider = document.getElementById('apcaSlider');
+        if (apcaSlider) {
+          apcaSlider.addEventListener('input', function() {
+            // Update the APCA value display
+            const apcaValueDisplay = document.getElementById('apcaSliderValue');
+            if (apcaValueDisplay) {
+              apcaValueDisplay.textContent = this.value;
+            }
+            // Update the APCACH value based on slider values
+            updateAPCACHFromSlider();
+          });
+        }
+        
+        // Chroma slider
+        const chromaSlider = document.getElementById('chromaSlider');
+        if (chromaSlider) {
+          chromaSlider.addEventListener('input', function() {
+            // Update the chroma value display
+            const chromaValueDisplay = document.getElementById('chromaSliderValue');
+            if (chromaValueDisplay) {
+              chromaValueDisplay.textContent = parseFloat(this.value).toFixed(2);
+            }
+            // Update the APCACH value based on slider values
+            updateAPCACHFromSlider();
+          });
+        }
+        
+        // Hue slider
+        const hueSlider = document.getElementById('hueSlider');
+        if (hueSlider) {
+          hueSlider.addEventListener('input', function() {
+            // Update the hue value display
+            const hueValueDisplay = document.getElementById('hueSliderValue');
+            if (hueValueDisplay) {
+              hueValueDisplay.textContent = Math.round(parseFloat(this.value));
+            }
+            // Update the APCACH value based on slider values
+            updateAPCACHFromSlider();
+          });
+        }
+        
+        // Background color input
+        const bgColorInput = document.getElementById('bgColorInput');
+        if (bgColorInput) {
+          bgColorInput.addEventListener('input', function() {
+            // Update the background color value display
+            const bgColorValue = document.getElementById('bgColorValue');
+            if (bgColorValue) {
+              bgColorValue.textContent = this.value.toUpperCase();
+              // Remove the direct style assignment - use CSS variables instead
+              // bgColorValue.style.color = this.value;
+            }
+            
+            // Update the APCACH value based on the new background color
+            updateAPCACHFromSlider();
+            
+            // Also update the background color in the UI
+            document.body.style.setProperty('--bg-color', this.value);
+            document.documentElement.style.setProperty('--text-color-bg', this.value);
+            
+            // Notify the plugin of the background change
+            parent.postMessage({
+              pluginMessage: {
+                type: 'update-background',
+                color: this.value
+              }
+            }, '*');
+          });
+        }
+      }
+
+      // Function to initialize the APCACH value on page load
+      function initializeAPCACHValue() {
+        try {
+          // Get initial slider values
+          const apcaValue = parseFloat(document.getElementById('apcaSlider').value);
+          const chromaValue = parseFloat(document.getElementById('chromaSlider').value);
+          const hueValue = parseFloat(document.getElementById('hueSlider').value);
+          
+          // Get the current background color
+          const bgColorInput = document.getElementById('bgColorInput');
+          const bgColor = bgColorInput ? bgColorInput.value : '#ffffff';
+          
+          // Create the initial APCACH value
+          const initialApcachValue = `apcach(crToBg("${bgColor}", ${apcaValue}), ${chromaValue.toFixed(2)}, ${Math.round(hueValue)})`;
+          
+          // Update the UI with the initial APCACH value
+          updateAPCACHValueInUI(initialApcachValue);
+          
+          console.log('Initialized APCACH value:', initialApcachValue);
+        } catch (error) {
+          console.error('Error initializing APCACH value:', error);
+        }
+      }
+
+      // Add a MutationObserver to watch for changes to the APCACH value in the UI
+      function setupAPCACHValueObserver() {
+        const apcachValueElement = document.getElementById('apcachValue');
+        if (!apcachValueElement) return;
+        
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'characterData' || mutation.type === 'childList') {
+              const newValue = apcachValueElement.textContent;
+              
+              // Check if the value needs to be formatted
+              const formattedValue = ensureCorrectAPCACHFormat(newValue);
+              
+              // If the formatted value is different from the current value, update it
+              if (formattedValue !== newValue) {
+                console.log('Detected APCACH value that needs formatting, fixing:', newValue);
+                // Use setTimeout to avoid infinite loop with the observer
+                setTimeout(() => {
+                  apcachValueElement.textContent = formattedValue;
+                }, 0);
+              } else {
+                // Update the sliders based on the APCACH value
+                try {
+                  if (typeof updateSlidersFromAPCACH === 'function') {
+                    updateSlidersFromAPCACH(formattedValue);
+                  } else {
+                    console.error('updateSlidersFromAPCACH function is not defined');
+                  }
+                } catch (error) {
+                  console.error('Error updating sliders from APCACH:', error);
+                }
+                
+                // Update the color preview based on the APCACH value
+                try {
+                  if (typeof updateColorsFromAPCACH === 'function') {
+                    updateColorsFromAPCACH(formattedValue);
+                  } else {
+                    console.error('updateColorsFromAPCACH function is not defined');
+                  }
+                } catch (error) {
+                  console.error('Error updating colors from APCACH:', error);
+                }
+              }
+            }
+          });
+        });
+        
+        observer.observe(apcachValueElement, { 
+          characterData: true, 
+          childList: true,
+          subtree: true 
+        });
+        
+        console.log('Set up APCACH value observer');
+      }
+
+      // Event listeners for editable background color value
+      const bgColorValue = document.getElementById('bgColorValue');
+      if (bgColorValue) {
+        // Handle focus to select all text
+        bgColorValue.addEventListener('focus', function() {
+          // Use setTimeout to ensure the selection happens after the focus
+          setTimeout(() => {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }, 0);
+        });
+        
+        // Handle input to validate hex values
+        bgColorValue.addEventListener('input', function() {
+          // Remove any non-hex characters
+          let value = this.textContent.replace(/[^0-9a-fA-F]/g, '');
+          
+          // Limit to 6 characters
+          if (value.length > 6) {
+            value = value.substring(0, 6);
+          }
+          
+          // Update the content if it was changed
+          if (value !== this.textContent) {
+            this.textContent = value;
+            // Move cursor to the end
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        });
+        
+        // Handle blur to apply the color
+        bgColorValue.addEventListener('blur', function() {
+          let value = this.textContent.trim();
+          
+          // Remove # if present
+          if (value.startsWith('#')) {
+            value = value.substring(1);
+          }
+          
+          // Ensure it's a valid hex color
+          if (!/^[0-9a-fA-F]{6}$/.test(value)) {
+            // If invalid, get the current color from the color picker
+            const bgColorInput = document.getElementById('bgColorInput');
+            value = bgColorInput.value.replace('#', '');
+          }
+          
+          // Add # for display
+          const hexColor = '#' + value.toUpperCase();
+          this.textContent = hexColor;
+          
+          // Update the color picker
+          const bgColorInput = document.getElementById('bgColorInput');
+          if (bgColorInput) {
+            bgColorInput.value = hexColor;
+            
+            // Trigger the color picker's input event to update everything
+            const event = new Event('input', { bubbles: true });
+            bgColorInput.dispatchEvent(event);
+          }
+        });
+        
+        // Handle Enter key to apply the color
+        bgColorValue.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.blur();
+          }
+        });
+      }
+
+      // Function to update the hue preview (thumb color)
+      function updateHuePreview(hue) {
+        // Make sure we have a valid number
+        const hueValue = parseFloat(hue);
+        
+        if (isNaN(hueValue)) {
+          console.error('Invalid hue value provided to updateHuePreview:', hue);
+          return;
+        }
+        
+        // Special handling for hue=0 (red)
+        if (hueValue === 0 || hueValue === 360) {
+          console.log('Setting hue 0/360 (red): rgb(255, 0, 0)');
+          document.documentElement.style.setProperty('--current-hue-color', 'rgb(255, 0, 0)');
+        } else {
+          // Convert hue to RGB for other values
+          const color = hueToRGB(hueValue);
+          const colorStr = `rgb(${color.r}, ${color.g}, ${color.b})`;
+          
+          // Debug log to verify the color conversion
+          console.log(`Hue: ${hueValue}° → RGB: ${colorStr}`);
+          
+          // Apply the color to the CSS variable
+          document.documentElement.style.setProperty('--current-hue-color', colorStr);
+          
+          // For Firefox, we need to manually update the thumb since CSS variables don't always work reliably
+          const hueSlider = document.getElementById('hueInput');
+          if (hueSlider && typeof InstallTrigger !== 'undefined') { // Check if Firefox
+            const thumbStyle = document.createElement('style');
+            thumbStyle.textContent = `
+              input[type="range"]#hueInput::-moz-range-thumb {
+                background-color: ${colorStr} !important;
+              }
+            `;
+            
+            // Remove any previous style tag for the thumb
+            const existingStyle = document.getElementById('hue-thumb-style');
+            if (existingStyle) {
+              existingStyle.remove();
+            }
+            
+            // Add the new style tag
+            thumbStyle.id = 'hue-thumb-style';
+            document.head.appendChild(thumbStyle);
+          }
+        }
+        
+        // Force-update the hue slider thumb appearance
+        const hueSlider = document.getElementById('hueInput');
+        if (hueSlider) {
+          // Apply a small transformation and revert it to force a repaint
+          hueSlider.style.transform = 'translateZ(0)';
+          setTimeout(() => {
+            hueSlider.style.transform = '';
+          }, 0);
+        }
+        
+        // Update the chroma gradient when hue changes
+        updateChromaGradient();
+        
+        // Update any number inputs that are currently focused
+        updateFocusedInputOutlines();
+        
+        // Update the APCA icon color
+        updateAPCAIcon();
+      }
+      
+      // Function to convert hue (0-359) to RGB
+      function hueToRGB(hue) {
+        // Normalize hue to be between 0 and 360
+        let normalizedHue = ((Number(hue) % 360) + 360) % 360;
+        
+        // Special case for hue = 0 or 360, directly return red
+        // This ensures consistency for the edge case
+        if (normalizedHue === 0 || normalizedHue === 360) {
+          return { r: 255, g: 0, b: 0 };
+        }
+        
+        // HSV to RGB conversion with full saturation and value
+        const h = normalizedHue / 60;
+        const s = 1;
+        const v = 1;
+        
+        const c = v * s; // Chroma
+        const x = c * (1 - Math.abs((h % 2) - 1));
+        const m = v - c;
+        
+        let r, g, b;
+        
+        if (h >= 0 && h < 1) {
+          r = c; g = x; b = 0;
+        } else if (h >= 1 && h < 2) {
+          r = x; g = c; b = 0;
+        } else if (h >= 2 && h < 3) {
+          r = 0; g = c; b = x;
+        } else if (h >= 3 && h < 4) {
+          r = 0; g = x; b = c;
+        } else if (h >= 4 && h < 5) {
+          r = x; g = 0; b = c;
+        } else {
+          r = c; g = 0; b = x;
+        }
+        
+        return {
+          r: Math.round((r + m) * 255),
+          g: Math.round((g + m) * 255),
+          b: Math.round((b + m) * 255)
+        };
+      }
+      
+      // Combined function to update hue display that replaces updateHuePreview, forceUpdateHueThumbColor, and setupHueSliderDirectly
+      function updateHueDisplay(hue) {
+        try {
+          // Make sure we have a valid number
+          const hueValue = parseFloat(hue);
+          
+          if (isNaN(hueValue)) {
+            console.error('Invalid hue value provided to updateHueDisplay:', hue);
+            return;
+          }
+          
+          console.log('Updating hue display for value:', hueValue);
+          
+          // Update the hue input value and number display if they exist
+          const hueInput = document.getElementById('hueInput');
+          const hueNumber = document.getElementById('hueNumber');
+          const hueDisplay = document.getElementById('hueValue');
+          
+          if (hueInput) {
+            hueInput.value = hueValue;
+          }
+          
+          if (hueNumber) {
+            hueNumber.value = hueValue;
+          }
+          
+          if (hueDisplay) {
+            hueDisplay.textContent = Math.round(hueValue);
+          }
+          
+          // Generate the color based on the hue
+          let color;
+          if (hueValue === 0 || hueValue === 360) {
+            color = 'rgb(255, 0, 0)';
+          } else {
+            const rgbColor = hueToRGB(hueValue);
+            color = `rgb(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b})`;
+          }
+          
+          // Update the CSS variable for other elements that use the hue color
+          document.documentElement.style.setProperty('--current-hue-color', color);
+          
+          console.log('Updated hue display with color:', color);
+          
+          // Update other UI elements that depend on the hue
+          updateChromaGradient();
+          updateAPCAIcon();
+          
+          return color;
+        } catch (error) {
+          console.error('Error in updateHueDisplay:', error);
+          return 'rgb(255, 0, 0)'; // Fallback to red
+        }
+      }
+      
+      // Function to update the chroma gradient based on current hue and APCA values
+      function updateChromaGradient() {
+        try {
+          // Get current values
+          const hue = parseFloat(hueInput.value);
+          const contrast = parseFloat(contrastInput.value);
+          
+          // No need to update thumb colors anymore as they're now white
+          // We keep the function calls for compatibility but they won't do anything
+        } catch (error) {
+          console.error('Error in updateChromaGradient:', error);
+        }
+      }
+
+      // Function to update APCA slider thumb color - now just a stub for compatibility
+      function updateAPCAThumbColor() {
+        // The thumb is now white so no need to update its color
+        return;
+      }
+
+      // Function to update chroma slider thumb color - now just a stub for compatibility
+      function updateChromaThumbColor() {
+        // The thumb is now white so no need to update its color
+        return;
+      }
+    
+      // Set initial button color and update the hue input thumb color
+      updateHueDisplay(hueInput.value);
+      
+      // Initialize APCA and chroma thumbs when the page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        updateChromaGradient();
+        updateAPCAIcon(); // Initialize APCA icon color
+        
+        // Set up focus event listeners for all number inputs
+        setupNumberInputFocusListeners();
+        
+        // Force update the hue slider thumb color to ensure it's correct
+        const hueSlider = document.getElementById('hueInput');
+        if (hueSlider) {
+          console.log('Initializing hue slider with value:', hueSlider.value);
+          updateHueDisplay(hueSlider.value);
+          
+          // Add event listener for hue changes
+          hueSlider.addEventListener('input', function() {
+            updateHueDisplay(this.value);
+          });
+          
+          hueSlider.addEventListener('change', function() {
+            updateHueDisplay(this.value);
+          });
+        }
+      });
+      
+      // Function to set up focus listeners for number inputs
+      function setupNumberInputFocusListeners() {
+        const numberInputs = document.querySelectorAll('input[type="number"]');
+        numberInputs.forEach(input => {
+          // When an input receives focus, update the hue display to reflect current value
+          input.addEventListener('focus', function() {
+            // If this is a hue-related input, update the hue display
+            if (this.id === 'hueNumber') {
+              updateHueDisplay(this.value);
+            }
+            console.log('Number input focused:', this.id);
+          });
+        });
+      }
+
+      // Add event listeners to update UI when values change
+      hueInput.addEventListener('input', function() {
+        updateHueDisplay(this.value);
+        updateChromaThumbColor();
+      });
+
+      contrastInput.addEventListener('input', function() {
+        updateAPCAThumbColor();
+      });
+
+      chromaInput.addEventListener('input', function() {
+        updateChromaThumbColor();
+      });
+
+      // Ensure UI is updated when background color changes
+      bgColorInput.addEventListener('input', function() {
+        // Set CSS variables for color preview
+        document.documentElement.style.setProperty('--text-color-bg', this.value);
+        
+        setTimeout(function() {
+          updateChromaThumbColor();
+          updateAPCAThumbColor();
+        }, 100);
+      });
+
+      // Function to update outline color for any focused number inputs
+      function updateFocusedInputOutlines() {
+        const focusedInput = document.activeElement;
+        if (focusedInput && focusedInput.type === 'number') {
+          // This will refresh the CSS variable without needing to refocus
+          focusedInput.blur();
+          focusedInput.focus();
+        }
+      }
+
+      // Function to update the APCA icon color to match the current hue
+      function updateAPCAIcon() {
+        try {
+          // Get all APCA icon SVG paths
+          const apcaIconPaths = document.querySelectorAll('.icon-apca svg path');
+          
+          // No need to do anything if there are no icons
+          if (!apcaIconPaths.length) return;
+          
+          // Current hue color is already set as a CSS variable by updateHuePreview
+          // The SVG paths will use it via CSS (--current-hue-color)
+          console.log('Updated APCA icon color with current hue');
+        } catch (error) {
+          console.error('Error updating APCA icon:', error);
+        }
+      }
+
+      // After DOMContentLoaded or a similar section where UI elements are initialized
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize foreground color input and display
+        const fgColorInput = document.getElementById('fgColorInput');
+        const fgColorValue = document.getElementById('fgColorValue');
+        const colorPreview = document.getElementById('colorPreview');
+        
+        // Set initial values
+        if (fgColorInput) {
+          // Get the current Figma P3 value if available, otherwise use default black
+          const initialColor = getCurrentFigmaP3Value() || '#000000';
+          fgColorInput.value = initialColor;
+          
+          // Update value display when color input changes
+          fgColorInput.addEventListener('input', function() {
+            if (fgColorValue) {
+              fgColorValue.textContent = this.value.toUpperCase();
+            }
+            
+            // Set CSS variable
+            document.documentElement.style.setProperty('--fg-color', this.value);
+            document.documentElement.style.setProperty('--text-color-fg', this.value);
+            
+            // Update color preview - use the foreground color for the preview
+            if (colorPreview) {
+              colorPreview.style.backgroundColor = this.value;
+              updatePreviewBorder(colorPreview, this.value);
+              
+              // Remove empty class from preview section
+              const previewSection = document.querySelector('.preview-section');
+              if (previewSection) {
+                previewSection.classList.remove('empty');
+              }
+            }
+            
+            // Update color values container with new derived styles
+            updateColorValuesContainer();
+          });
+        }
+        
+        // Initialize the displayed text value
+        if (fgColorValue) {
+          // Get the current Figma P3 value if available, otherwise use default black
+          const initialColor = getCurrentFigmaP3Value() || '#000000';
+          fgColorValue.textContent = initialColor.toUpperCase();
+          
+          // Add event listeners for manual editing of the color value
+          fgColorValue.addEventListener('focus', function() {
+            // Store original value in case we need to revert
+            this.dataset.originalValue = this.textContent;
+          });
+          
+          fgColorValue.addEventListener('input', function() {
+            // Clean the input as user types
+            let value = this.textContent.replace(/[^0-9A-Fa-f#]/g, '');
+            
+            // Ensure it starts with #
+            if (!value.startsWith('#')) {
+              value = '#' + value;
+            }
+            
+            // Limit to 7 chars (#RRGGBB)
+            if (value.length > 7) {
+              value = value.substring(0, 7);
+            }
+            
+            this.textContent = value;
+          });
+          
+          fgColorValue.addEventListener('blur', function() {
+            // Validate on blur
+            let hexColor = this.textContent;
+            
+            // Check if it's a valid hex color
+            if (!/^#[0-9A-Fa-f]{6}$/i.test(hexColor)) {
+              // Revert to original or default
+              hexColor = this.dataset.originalValue || '#000000';
+              this.textContent = hexColor;
+            }
+            
+            // Update the color input to match
+            if (fgColorInput) {
+              fgColorInput.value = hexColor;
+              
+              // Trigger input event to update other UI elements
+              const event = new Event('input', { bubbles: true });
+              fgColorInput.dispatchEvent(event);
+            }
+          });
+          
+          // Handle Enter key to apply changes
+          fgColorValue.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.blur();
+            }
+          });
+        }
+        
+        // Set up observer to update foreground color when Figma P3 value changes
+        const figmaP3Element = document.getElementById('figmaP3Value');
+        if (figmaP3Element) {
+          const p3Observer = new MutationObserver(function(mutations) {
+            const newP3Value = getCurrentFigmaP3Value();
+            if (newP3Value) {
+              // Update foreground color input and value
+              if (fgColorInput) fgColorInput.value = newP3Value;
+              if (fgColorValue) fgColorValue.textContent = newP3Value.toUpperCase();
+            }
+          });
+          
+          p3Observer.observe(figmaP3Element, { 
+            characterData: true, 
+            childList: true,
+            subtree: true 
+          });
+        }
+      });
+
+      // Add initializing color values at the end of initializeDefaultValues
+      // Set CSS variables
+      document.documentElement.style.setProperty('--bg-color', defaults.backgroundColor);
+      document.documentElement.style.setProperty('--fg-color', defaults.hex);
+      document.documentElement.style.setProperty('--text-color-bg', defaults.backgroundColor);
+      document.documentElement.style.setProperty('--text-color-fg', defaults.hex);
+
+      // Set text colors for editable color values
+      if (bgColorValue) {
+        // bgColorValue.style.color = defaults.backgroundColor;
+      }
+      if (fgColorValue) {
+        // fgColorValue.style.color = defaults.hex;
+      }
+
+      // Add this function inside the DOMContentLoaded event handler, right after the fgColorValue event listeners
+      // Add a MutationObserver to prevent inline style colors on color value elements
+      function preventInlineColorStyles() {
+        const bgColorValue = document.getElementById('bgColorValue');
+        const fgColorValue = document.getElementById('fgColorValue');
+        
+        // Function to create and attach an observer
+        function createStyleObserver(element) {
+          if (!element) return;
+          
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.attributeName === 'style') {
+                // Get the current style
+                const style = element.style;
+                
+                // If the style has a color property, remove it
+                if (style.color) {
+                  // Remember other style properties
+                  const stylesCopy = {};
+                  for (let i = 0; i < style.length; i++) {
+                    const prop = style[i];
+                    if (prop !== 'color') {
+                      stylesCopy[prop] = style[prop];
+                    }
+                  }
+                  
+                  // Clear all styles
+                  element.removeAttribute('style');
+                  
+                  // Restore other styles except color
+                  for (const [prop, value] of Object.entries(stylesCopy)) {
+                    element.style[prop] = value;
+                  }
+                  
+                  console.log('Removed inline color style from', element.id);
+                }
+              }
+            });
+          });
+          
+          observer.observe(element, { attributes: true, attributeFilter: ['style'] });
+          
+          // Initial check - remove any existing inline color styles
+          if (element.style.color) {
+            element.style.removeProperty('color');
+            console.log('Removed initial inline color style from', element.id);
+          }
+          
+          return observer;
+        }
+        
+        // Create observers for both elements
+        const bgObserver = createStyleObserver(bgColorValue);
+        const fgObserver = createStyleObserver(fgColorValue);
+        
+        console.log('Set up style observers to prevent inline color styles');
+      }
+
+      // Call the function to set up the observers
+      preventInlineColorStyles();
+
+      // Add this function right before the updateColorPreview function
+
+      // Function to update the foreground color from P3 value
+      function updateForegroundColor(color) {
+        if (!color) return;
+        
+        // Only update if the color is in a valid hex format
+        if (!color.startsWith('#')) return;
+        
+        const fgColorInput = document.getElementById('fgColorInput');
+        const fgColorValue = document.getElementById('fgColorValue');
+        
+        // Update the color input
+        if (fgColorInput) {
+          fgColorInput.value = color;
+        }
+        
+        // Update the editable text value
+        if (fgColorValue) {
+          fgColorValue.textContent = color.toUpperCase();
+        }
+        
+        // Set CSS variable
+        document.documentElement.style.setProperty('--fg-color', color);
+        document.documentElement.style.setProperty('--text-color-fg', color);
+        
+        // Update color values container with new derived styles
+        updateColorValuesContainer();
+        
+        console.log('Updated foreground color to:', color);
+      }
+
+      // Add this function near the DOMContentLoaded section
+      function updateColorValuesContainer() {
+        const colorValues = document.querySelector('.color-values');
+        if (!colorValues) return;
+        
+        // Get color preview's current color (this is the source of truth for foreground color)
+        const colorPreview = document.getElementById('colorPreview');
+        const colorPreviewColor = colorPreview ? colorPreview.style.backgroundColor : null;
+        
+        // Convert color preview color to hex for foreground controls
+        let previewHexColor = '#000000';
+        if (colorPreviewColor) {
+          if (colorPreviewColor.startsWith('#')) {
+            previewHexColor = colorPreviewColor;
+          } else if (colorPreviewColor.startsWith('rgb')) {
+            // Extract RGB values
+            const rgbValues = colorPreviewColor.match(/\d+/g);
+            if (rgbValues && rgbValues.length >= 3) {
+              const r = parseInt(rgbValues[0]);
+              const g = parseInt(rgbValues[1]);
+              const b = parseInt(rgbValues[2]);
+              previewHexColor = rgbToHex(r, g, b);
+            }
+          } else if (colorPreviewColor.includes('display-p3')) {
+            // Use the figmaP3Value if available, otherwise approximate from display-p3
+            const figmaP3Element = document.getElementById('figmaP3Value');
+            if (figmaP3Element && figmaP3Element.textContent && figmaP3Element.textContent.startsWith('#')) {
+              previewHexColor = figmaP3Element.textContent;
+            } else {
+              // Extract P3 values and approximate to sRGB
+              const p3Values = colorPreviewColor.match(/[\d.]+/g);
+              if (p3Values && p3Values.length >= 3) {
+                const r = Math.round(parseFloat(p3Values[0]) * 255);
+                const g = Math.round(parseFloat(p3Values[1]) * 255);
+                const b = Math.round(parseFloat(p3Values[2]) * 255);
+                previewHexColor = rgbToHex(r, g, b);
+              }
+            }
+          }
+        }
+        
+        // Update foreground controls to match color preview
+        const fgColorInput = document.getElementById('fgColorInput');
+        const fgColorValue = document.getElementById('fgColorValue');
+        
+        if (fgColorInput) {
+          fgColorInput.value = previewHexColor;
+        }
+        
+        if (fgColorValue) {
+          fgColorValue.textContent = previewHexColor.toUpperCase();
+        }
+        
+        // Get the background color
+        const bgColorInput = document.getElementById('bgColorInput');
+        const backgroundColor = bgColorInput ? bgColorInput.value : '#D9D9D9';
+        
+        // Calculate background brightness to determine if we need light or dark text
+        const bgRgb = hexToRgb(backgroundColor);
+        // Use improved perceptual brightness formula (gives more weight to green)
+        const bgBrightness = bgRgb ? (bgRgb.r * 0.299 + bgRgb.g * 0.587 + bgRgb.b * 0.114) : 128;
+        const isDarkBackground = bgBrightness < 128;
+        
+        // Additional check for medium-brightness backgrounds that might need extra contrast
+        const isMediumBackground = bgBrightness >= 100 && bgBrightness <= 150;
+        
+        console.log(`Background color: ${backgroundColor}, Brightness: ${bgBrightness}, Is Dark: ${isDarkBackground}, Is Medium: ${isMediumBackground}`);
+        
+        // Calculate derived colors based on the preview hex color
+        const rgbColor = hexToRgb(previewHexColor);
+        if (!rgbColor) return;
+        
+        let valueText, valueSecondary, valueTertiary, borderStrong, borderSubtle;
+        
+        if (isDarkBackground) {
+          // For dark backgrounds, use lighter variants of the color to ensure readability
+          valueText = lightenColor(previewHexColor, 0.6); // Increased lightening for better contrast
+          valueSecondary = lightenColor(previewHexColor, 0.45);
+          valueTertiary = lightenColor(previewHexColor, 0.3);
+          borderStrong = lightenColor(previewHexColor, 0.7);
+          borderSubtle = lightenColor(previewHexColor, 0.5);
+          console.log('Using light text on dark background');
+        } else {
+          // For light backgrounds, use darker variants (original behavior)
+          valueText = darkenColor(previewHexColor, 0.4);
+          valueSecondary = darkenColor(previewHexColor, 0.25);
+          valueTertiary = darkenColor(previewHexColor, 0.1);
+          
+          // Add extra contrast for medium-brightness backgrounds
+          if (isMediumBackground) {
+            valueText = darkenColor(previewHexColor, 0.5); // Darker text for medium backgrounds
+            valueSecondary = darkenColor(previewHexColor, 0.35);
+            valueTertiary = darkenColor(previewHexColor, 0.2);
+            console.log('Using darker text on medium background for better contrast');
+          }
+          
+          borderStrong = lightenColor(previewHexColor, 0.2);
+          borderSubtle = lightenColor(previewHexColor, 0.4);
+          console.log('Using dark text on light background');
+        }
+        
+        // Now ensure text colors have enough contrast
+        valueText = ensureContrast(valueText, backgroundColor, 4.5); // WCAG AA for normal text
+        valueSecondary = ensureContrast(valueSecondary, backgroundColor, 3.5); // Slightly lower for secondary
+        valueTertiary = ensureContrast(valueTertiary, backgroundColor, 3.0); // Lower for tertiary text
+        
+        // Apply the CSS variables
+        colorValues.style.setProperty('--preview-color', previewHexColor);
+        colorValues.style.setProperty('--value-text', valueText);
+        colorValues.style.setProperty('--value-secondary', valueSecondary);
+        colorValues.style.setProperty('--value-tertiary', valueTertiary);
+        colorValues.style.setProperty('--border-strong', `color-mix(in srgb, ${borderStrong} 26%, transparent)`);
+        colorValues.style.setProperty('--border-subtle', `color-mix(in srgb, ${borderSubtle} 10%, transparent)`);
+        
+        // Set CSS variables for foreground color
+        document.documentElement.style.setProperty('--fg-color', previewHexColor);
+        document.documentElement.style.setProperty('--text-color-fg', previewHexColor);
+        
+        console.log('Updated color-values container with styles from color preview:', {
+          previewHexColor,
+          valueText,
+          valueSecondary,
+          valueTertiary,
+          borderStrong,
+          borderSubtle,
+          isDarkBackground
+        });
+      }
+
+      // Helper function to convert hex to RGB
+      function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : null;
+      }
+
+      // Helper function to darken a color by a percentage
+      function darkenColor(hex, amount) {
+        const rgb = hexToRgb(hex);
+        if (!rgb) return hex;
+        
+        const r = Math.max(0, Math.floor(rgb.r * (1 - amount)));
+        const g = Math.max(0, Math.floor(rgb.g * (1 - amount)));
+        const b = Math.max(0, Math.floor(rgb.b * (1 - amount)));
+        
+        return rgbToHex(r, g, b);
+      }
+
+      // Helper function to lighten a color by a percentage
+      function lightenColor(hex, amount) {
+        const rgb = hexToRgb(hex);
+        if (!rgb) return hex;
+        
+        const r = Math.min(255, Math.floor(rgb.r + (255 - rgb.r) * amount));
+        const g = Math.min(255, Math.floor(rgb.g + (255 - rgb.g) * amount));
+        const b = Math.min(255, Math.floor(rgb.b + (255 - rgb.b) * amount));
+        
+        return rgbToHex(r, g, b);
+      }
+
+      // RGB to hex conversion helper
+      function rgbToHex(r, g, b) {
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+      }
+
+      // Connect the update function to color change events
+      document.addEventListener('DOMContentLoaded', function() {
+        // Call the update function on page load
+        updateColorValuesContainer();
+        
+        // Add listeners to update when colors change
+        const bgColorInput = document.getElementById('bgColorInput');
+        const fgColorInput = document.getElementById('fgColorInput');
+        
+        if (bgColorInput) {
+          // Note: bgColorInput already has its own input listener that calls updateColorValuesContainer
+          console.log('Background color input listener already set up');
+        }
+        
+        // Note: fgColorInput already has its own input listener in another DOMContentLoaded handler
+        console.log('Foreground color input listener already set up');
+        
+        // Also update when color preview changes
+        const colorPreview = document.getElementById('colorPreview');
+        if (colorPreview) {
+          const previewObserver = new MutationObserver(updateColorValuesContainer);
+          previewObserver.observe(colorPreview, { 
+            attributes: true, 
+            attributeFilter: ['style'] 
+          });
+          console.log('Set up color preview observer');
+        }
+        
+        // Also update when Figma P3 value changes
+        const figmaP3Element = document.getElementById('figmaP3Value');
+        if (figmaP3Element) {
+          const p3Observer = new MutationObserver(updateColorValuesContainer);
+          p3Observer.observe(figmaP3Element, { 
+            characterData: true, 
+            childList: true,
+            subtree: true 
+          });
+          console.log('Set up Figma P3 value observer');
+        }
+        
+        console.log('Set up color-values container update listeners');
+      });
+
+      // Function to extract hue from a hex color without updating UI elements
+      function extractHueFromHexColor(hexColor) {
+        if (!hexColor || !hexColor.startsWith('#')) return null;
+        
+        try {
+          // Convert hex to RGB
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColor);
+          if (!result) return null;
+          
+          const r = parseInt(result[1], 16) / 255;
+          const g = parseInt(result[2], 16) / 255;
+          const b = parseInt(result[3], 16) / 255;
+          
+          // RGB to HSV conversion
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const delta = max - min;
+          
+          // Calculate hue
+          let hue = 0;
+          if (delta === 0) {
+            hue = 0; // Achromatic (gray)
+          } else if (max === r) {
+            hue = ((g - b) / delta) % 6;
+          } else if (max === g) {
+            hue = (b - r) / delta + 2;
+          } else {
+            hue = (r - g) / delta + 4;
+          }
+          
+          // Convert to degrees
+          hue = Math.round(hue * 60);
+          if (hue < 0) hue += 360;
+          
+          console.log(`Extracted hue from ${hexColor}: ${hue}°`);
+          return hue;
+        } catch (error) {
+          console.error('Error extracting hue from color:', error);
+          return null;
+        }
+      }
+
+      // Add this new function after the updateHuePreview function
+      // Function to extract hue from a hex color and update the hue slider
+      function updateHueFromColorHex(hexColor) {
+        const hue = extractHueFromHexColor(hexColor);
+        if (hue === null) return;
+        
+        // Update all related UI elements using the combined function
+        updateHueDisplay(hue);
+      }
+
+      // Listen for custom hue update events from TypeScript
+      document.addEventListener('update-hue-display', function(event) {
+        // Access customEvent.detail safely using casting to any
+        const detail = event.detail;
+        if (detail && detail.hueValue) {
+          const hueValue = detail.hueValue;
+          console.log('Received update-hue-display event with value:', hueValue);
+          updateHueDisplay(hueValue);
+        }
+      });
+
+      // Listen for messages from the plugin
+    </script>
+  </body>
+</html> 
