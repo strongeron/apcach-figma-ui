@@ -1,0 +1,25 @@
+{
+  "name": "apcach-ui-mvp",
+  "id": "1472274304489995751",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": [
+    "figma"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  },
+  "parameters": [
+    {
+      "name": "Maximize Chroma",
+      "key": "maximize-chroma",
+      "description": "Adjust selected colors to their maximum possible chroma values while maintaining contrast"
+    }
+  ],
+  "parameterOnly": false
+}
